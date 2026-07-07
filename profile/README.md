@@ -1,6 +1,3 @@
-<!-- Banner slot: add the <picture> block here when profile/banner-{light,dark}.svg
-     land, per /opensource/simtabi-brand-design-standard.md:
-
 <div align="center">
   <a href="https://simtabi.com">
     <picture>
@@ -9,7 +6,6 @@
     </picture>
   </a>
 </div>
--->
 
 # We design software, brands, and the tools in between.
 

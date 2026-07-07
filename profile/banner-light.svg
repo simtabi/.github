@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400" role="img" aria-label="Simtabi — software design agency and design and branding studio">
+  <defs>
+    <linearGradient id="flame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E8501B"/>
+      <stop offset="1" stop-color="#C62828"/>
+    </linearGradient>
+    <clipPath id="frame">
+      <rect x="0" y="0" width="1200" height="400" rx="24"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect x="0" y="0" width="1200" height="400" fill="#F7F3F0"/>
+    <circle cx="1185" cy="185" r="215" fill="url(#flame)" opacity="0.92"/>
+    <circle cx="985" cy="345" r="118" fill="none" stroke="url(#flame)" stroke-width="3" opacity="0.45"/>
+    <circle cx="920" cy="80" r="7" fill="#FFB300"/>
+    <text x="82" y="212" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="92" font-weight="700" letter-spacing="-2" fill="#1F1B1A">Simtabi<tspan fill="#E8501B">.</tspan></text>
+    <text x="85" y="272" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="29" fill="#6B6461">We design software, brands, and the tools in between.</text>
+  </g>
+</svg>
