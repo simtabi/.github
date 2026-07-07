@@ -13,6 +13,6 @@
     <circle cx="985" cy="345" r="118" fill="none" stroke="url(#flame)" stroke-width="3" opacity="0.4"/>
     <circle cx="920" cy="80" r="7" fill="#FFC94D"/>
     <text x="82" y="212" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="92" font-weight="700" letter-spacing="-2" fill="#E6E1DE">Simtabi<tspan fill="#FF7A45">.</tspan></text>
-    <text x="85" y="272" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="29" fill="#8B8683">We design software, brands, and the tools in between.</text>
+    <text x="85" y="272" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="29" fill="#8B8683">We design and build software, brands, and the tools in between.</text>
   </g>
 </svg>

@@ -7,7 +7,7 @@
   </a>
 </div>
 
-# We design software, brands, and the tools in between.
+# We design and build software, brands, and the tools in between.
 
 [Simtabi](https://simtabi.com) is a software design agency and design & branding
 studio operating across New York, Delaware, and North Carolina, USA. We spend
