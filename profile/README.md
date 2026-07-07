@@ -14,10 +14,10 @@
 # We design software, brands, and the tools in between.
 
 [Simtabi](https://simtabi.com) is a software design agency and design & branding
-studio operating across New York, Delaware, and North Carolina, USA, with an
-office in Nairobi, Kenya. We spend our days designing products and building the
-tooling that ships them. When a tool earns its keep beyond our own desks, we
-open-source it and keep maintaining it.
+studio operating across New York, Delaware, and North Carolina, USA. We spend
+our days designing products and building the tooling that ships them. When a
+tool earns its keep beyond our own desks, we open-source it and keep
+maintaining it.
 
 ## Tools born from real problems
 
