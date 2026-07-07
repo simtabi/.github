@@ -30,8 +30,8 @@ Every project here started as an itch we had to scratch:
 - [release-kit](https://github.com/simtabi/release-kit) — one config file, one
   command, and every registry your project publishes to.
 - [laranail](https://github.com/laranail) — our Laravel package family: the
-  tooling we use to build, scaffold, and ship Laravel packages, grown into its
-  own organization.
+  tooling we use to build, scaffold, and ship Laravel packages, now an
+  organization of its own.
 - docsmith — the documentation engine behind
   [opensource.simtabi.com](https://opensource.simtabi.com), where everything we
   publish lives.
