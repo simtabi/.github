@@ -20,13 +20,15 @@ maintaining it.
 Every project here started as an itch we had to scratch:
 
 - [probaci](https://github.com/simtabi/probaci) — because "fix CI" commits
-  shouldn't exist. Run your CI checks locally, in containers, before you push.
-- [osaat](https://github.com/simtabi/osaat) — answers "what exactly is installed
-  on this machine?" Audit and back up applications on macOS, Linux, and Unix.
-- [ssh-manager](https://github.com/simtabi/ssh-manager) — one profile per client,
-  every key and config where it belongs.
+  shouldn't exist. It runs your CI checks locally, in containers, before you
+  push.
+- [osaat](https://github.com/simtabi/osaat) — for the day someone asks, "what
+  exactly is installed on this machine?" It audits and backs up applications
+  on macOS, Linux, and Unix.
+- [ssh-manager](https://github.com/simtabi/ssh-manager) — one profile per
+  client, with every key and config where it belongs.
 - [release-kit](https://github.com/simtabi/release-kit) — one config file, one
-  command, every registry your project publishes to.
+  command, and every registry your project publishes to.
 - [laranail](https://github.com/laranail) — our Laravel package family: the
   tooling we use to build, scaffold, and ship Laravel packages, grown into its
   own organization.
