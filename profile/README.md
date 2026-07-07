@@ -30,8 +30,8 @@ we publish lives at [opensource.simtabi.com](https://opensource.simtabi.com).
     applications on macOS, Linux, and Unix.
   - [ssh-manager](https://github.com/simtabi/ssh-manager) — profile-based SSH key
     and config lifecycle manager.
-  - [repoclone](https://github.com/simtabi/repoclone) — bulk-clone repositories
-    from GitHub, GitLab, Bitbucket, and beyond.
+  - [release-kit](https://github.com/simtabi/release-kit) — multi-registry
+    publishing automation: one config file, one command, every registry.
 - docsmith — the config-driven documentation platform behind
   [opensource.simtabi.com](https://opensource.simtabi.com).
 
