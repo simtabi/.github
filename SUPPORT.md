@@ -3,9 +3,7 @@
 Thanks for using a Simtabi open source project. Here is how to get help, fastest
 first:
 
-1. **Documentation** — start at
-   [opensource.simtabi.com](https://opensource.simtabi.com) and the `docs/`
-   directory inside the repository you are using.
+1. **Documentation** — the `docs/` directory inside the repository you are using.
 2. **Issues** — for bugs and feature requests, open an issue on the relevant
    repository. Search existing issues first; use the issue templates when offered.
 3. **Email** — for anything that does not fit an issue tracker,

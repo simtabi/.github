@@ -4,8 +4,8 @@ We take the security of every Simtabi open source project seriously.
 
 ## Reporting a vulnerability
 
-Please email **[opensource@simtabi.com](mailto:opensource@simtabi.com)** with the
-details. Do **not** open a public issue for a suspected vulnerability.
+Email **[security@simtabi.com](mailto:security@simtabi.com)** with the details.
+Do **not** open a public issue for a suspected vulnerability.
 
 Include, where possible:
 
@@ -16,6 +16,11 @@ Include, where possible:
 You will receive an acknowledgement within a few business days. We will keep you
 informed as we investigate, and we will credit you in the fix's release notes
 unless you prefer otherwise.
+
+`security@simtabi.com` is the disclosure address and is watched for exactly this.
+It is kept separate from community mail so a report is never buried in a thread
+about a feature request — please do not send vulnerabilities to
+`opensource@simtabi.com`.
 
 ## Scope
 

@@ -33,9 +33,6 @@ Every project here started as an itch we had to scratch:
 - [laranail](https://github.com/laranail) — our Laravel package family: the
   tooling we use to build, scaffold, and ship Laravel packages, now an
   organization of its own.
-- docsmith — the documentation engine behind
-  [opensource.simtabi.com](https://opensource.simtabi.com), where everything we
-  publish lives.
 
 ## Talk to us
 
