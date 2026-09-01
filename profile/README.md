@@ -38,9 +38,8 @@ Every project here started as an itch we had to scratch:
 
 - Found a bug or want a feature? Open an issue on that repository. Answers in
   the open help the next person too.
-- Security concern? Follow the
-  [security policy](https://github.com/simtabi/.github/blob/main/SECURITY.md)
-  and we'll handle it privately.
+- Security: [security@simtabi.com](mailto:security@simtabi.com) — never a public issue.
+  See the [security policy](https://github.com/simtabi/.github/security/policy).
 - Anything else: [opensource@simtabi.com](mailto:opensource@simtabi.com). A
   human reads it.
 
