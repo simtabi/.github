@@ -31,6 +31,10 @@ Each health file is either boilerplate or prose, decided by measuring rather tha
 | `SUPPORT.md.tmpl` | `<account>/.github/SUPPORT.md` | the docs pointer, or the whole help section |
 | `CONTRIBUTING.md.tmpl` | `<account>/.github/CONTRIBUTING.md` | the heading label |
 | `CODE_OF_CONDUCT.md` | `<account>/.github/CODE_OF_CONDUCT.md` | nothing |
+| `ISSUE_TEMPLATE/*.yml.tmpl` | `<account>/.github/ISSUE_TEMPLATE/` | the bug form's environment field; `config.yml` names the account |
+| `PULL_REQUEST_TEMPLATE.md.tmpl` | `<account>/.github/PULL_REQUEST_TEMPLATE.md` | nothing |
+
+Issue templates are all-or-nothing per repository: a repository with any `.github/ISSUE_TEMPLATE` of its own shows none of the org forms, so its own stay as they are. The org `config.yml` turns blank issues off and offers two links: the account's security policy page, and its `SUPPORT.md`. It links no Discussions, which are enabled on some repositories only.
 
 Per-account values live in `templates/health/orgs.json`, extracted verbatim from the files they replace, so a bespoke paragraph survives as a value rather than being flattened. An account whose file is its own prose is marked `"keep"` and is never rendered; one that carries no such file by design is `"none"`. The token reference is `templates/health/tokens.md`.
 

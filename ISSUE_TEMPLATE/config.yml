@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/simtabi/.github/security/policy
+    about: Never in a public issue. Email security@simtabi.com, as the security policy describes.
+  - name: Ask a question or get help
+    url: https://github.com/simtabi/.github/blob/HEAD/SUPPORT.md
+    about: Where to get help, including opensource@simtabi.com for anything that does not fit an issue.
