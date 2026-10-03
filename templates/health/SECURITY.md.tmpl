@@ -1,6 +1,6 @@
 # Security policy
 
-Simtabi LLC maintains the open-source projects in the [simtabi](https://github.com/simtabi) organization. This policy explains how to report a security vulnerability in them and what you can expect from us. A repository's own `SECURITY.md`, where one exists, adds scope and supported versions for that project and takes precedence where the two differ.
+Simtabi LLC maintains {{SUBJECT}}. This policy explains how to report a security vulnerability in them and what you can expect from us. A repository's own `SECURITY.md`, where one exists, adds scope and supported versions for that project and takes precedence where the two differ.
 
 ## Reporting a vulnerability
 
@@ -10,7 +10,7 @@ Email **[security@simtabi.com](mailto:security@simtabi.com)**. This address work
 
 Use only that address for security reports. Other Simtabi addresses, such as `opensource@simtabi.com`, handle community mail, and a report sent to one of them may be delayed.
 
-Where a public repository has GitHub private vulnerability reporting enabled, you can also use the **Report a vulnerability** button on that repository's **Security** tab. Use it only if the button is present; private repositories do not support it, and email remains the fallback everywhere.
+Where a public repository has GitHub private vulnerability reporting enabled, you can also use the **Report a vulnerability** button on that repository's **Security** tab. Use it only if the button is present; private repositories do not support it, and email remains the fallback everywhere.{{#CHANNEL_EXTRA}}{{/CHANNEL_EXTRA}}
 
 ## What to include
 
@@ -62,7 +62,7 @@ This section is adapted from the disclose.io core terms (CC0 1.0).
 
 ## Scope
 
-In scope: the source code of the public and private repositories in this organization, in their currently supported versions as stated by each repository.
+In scope: the source code of the public and private repositories {{SCOPE}}, in their currently supported versions as stated by each repository.
 
 Out of scope:
 
@@ -73,7 +73,7 @@ Out of scope:
 - Issues that require the integrator to use our software insecurely, such as passing unsanitized input to an API documented as unsafe.
 - Missing hardening without demonstrated impact, such as missing headers or rate limiting.
 - Volumetric denial of service, social engineering, and physical attacks.
-- Automated scanner or AI-generated output that has not been verified and reproduced.
+- Automated scanner or AI-generated output that has not been verified and reproduced.{{EXTRA}}
 
 ## No bounty
 

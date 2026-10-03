@@ -1,0 +1,92 @@
+{
+  "_about": "Per-account token values for the org health masters in this directory. Values were extracted verbatim from each account's .github on 2026-10-01, so bespoke paragraphs live here rather than in the masters. The security values were re-cut on 2026-10-01 for the org policy master (5/15/30 targets, 90-day disclosure): SUBJECT/SCOPE now name the account, EXTRA closes the Scope section, CHANNEL_EXTRA follows the private-reporting paragraph; ichava adopted the master that day. \"keep\" = the account's own file is the source and is never rendered; \"none\" = the account carries no such file by design. Client-owned accounts must never appear here.",
+  "client_accounts": [
+    "adelsaiq",
+    "dannielagumo",
+    "joemanch"
+  ],
+  "min_accounts": 6,
+  "accounts": {
+    "imanimanyara": {
+      "security": {
+        "SUBJECT": "the open-source projects on the [imanimanyara](https://github.com/imanimanyara) account",
+        "SCOPE": "on this account",
+        "EXTRA": ""
+      },
+      "support": {
+        "DOCS_EXTRA": ""
+      },
+      "code_of_conduct": {},
+      "contributing": {
+        "ORG_LABEL": "Simtabi"
+      }
+    },
+    "simtabi": {
+      "security": {
+        "SUBJECT": "the open-source projects in the [simtabi](https://github.com/simtabi) organization",
+        "SCOPE": "in this organization",
+        "EXTRA": ""
+      },
+      "support": {
+        "DOCS_EXTRA": ""
+      },
+      "code_of_conduct": {},
+      "contributing": {
+        "ORG_LABEL": "Simtabi"
+      }
+    },
+    "laranail": {
+      "security": {
+        "SUBJECT": "the laranail packages in the [laranail](https://github.com/laranail) organization",
+        "SCOPE": "in this organization",
+        "EXTRA": ""
+      },
+      "support": {
+        "DOCS_EXTRA": ", starting with [`package-tools/docs`](https://github.com/laranail/package-tools/tree/main/docs)"
+      },
+      "code_of_conduct": {},
+      "contributing": {
+        "ORG_LABEL": "laranail"
+      }
+    },
+    "ichava": {
+      "security": {
+        "SUBJECT": "the open-source projects in the [ichava](https://github.com/ichava) organization",
+        "SCOPE": "in this organization",
+        "CHANNEL_EXTRA": "\n\nEvery public, non-archived repository in this organization has private vulnerability reporting switched on, so the button is available on all of them.",
+        "EXTRA": "\n\nEvery package is pre-1.0. Report anything you find regardless; pre-1.0 is not a reason to stay quiet."
+      },
+      "support": {
+        "DOCS": "each package's own `docs/` tree",
+        "DOCS_EXTRA": ", starting with\n   [core's installation guide](https://github.com/ichava/core/blob/main/docs/installation.md).\n   Plain markdown, browseable on GitHub"
+      },
+      "code_of_conduct": {},
+      "contributing": "keep"
+    },
+    "mukoracms": {
+      "security": {
+        "SUBJECT": "the Mukora packages in the [mukoracms](https://github.com/mukoracms) organization",
+        "SCOPE": "in this organization",
+        "EXTRA": "\n\nThe Mukora packages are pre-release and mostly private. Report anything you find regardless — pre-1.0 is not a reason to stay quiet, and a private repository is not a reason to assume we already know."
+      },
+      "support": {
+        "HELP": "Thanks for using a Simtabi open source project. Here is how to get help, fastest\nfirst:\n\n1. **Issues** — for bugs and feature requests, open an issue on the relevant\n   repository, if you have access to it.\n2. **Email** — [opensource@simtabi.com](mailto:opensource@simtabi.com) for\n   anything else, including access questions.\n\nMukora repositories are private while the interfaces settle, so most support runs\nthrough your usual contact rather than a public tracker."
+      },
+      "code_of_conduct": {},
+      "contributing": "keep"
+    },
+    "brandgulp": {
+      "security": {
+        "SUBJECT": "the BrandGulp repositories in the [brandgulp](https://github.com/brandgulp) organization",
+        "SCOPE": "in this organization",
+        "EXTRA": "\n\nBrandGulp is a private commercial product. Reports about the hosted service are equally welcome at the address above."
+      },
+      "support": {
+        "EXCEPTION_JOIN": " —",
+        "HELP": "BrandGulp is a commercial product and its repositories are private.\n\n- **Customers:** use the support channel in your workspace, or your usual contact.\n- **Anything else:** [opensource@simtabi.com](mailto:opensource@simtabi.com)."
+      },
+      "code_of_conduct": {},
+      "contributing": "none"
+    }
+  }
+}
