@@ -1,5 +1,5 @@
 {
-  "_about": "Per-account token values for the org health masters in this directory. Values were extracted verbatim from each account's .github on 2026-10-01, so bespoke paragraphs live here rather than in the masters. The security values were re-cut on 2026-10-01 for the org policy master (5/15/30 targets, 90-day disclosure): SUBJECT/SCOPE now name the account, EXTRA closes the Scope section, CHANNEL_EXTRA follows the private-reporting paragraph; ichava adopted the master that day. \"keep\" = the account's own file is the source and is never rendered; \"none\" = the account carries no such file by design. Client-owned accounts must never appear here.",
+  "_about": "Per-account token values for the org health masters in this directory. Values were extracted verbatim from each account's .github on 2026-10-01, so bespoke paragraphs live here rather than in the masters. The security values were re-cut on 2026-10-01 for the org policy master (5/15/30 targets, 90-day disclosure): SUBJECT/SCOPE now name the account, EXTRA closes the Scope section, CHANNEL_EXTRA follows the private-reporting paragraph; ichava adopted the master that day. \"keep\" = the account's own file is the source and is never rendered; \"none\" = the account carries no such file by design. Client-owned accounts must never appear here. Issue and pull request templates were added on 2026-10-03 (plan 5.3 step 4); laranail's bug form asks for the PHP / Laravel version, everyone else's for a generic environment.",
   "client_accounts": [
     "adelsaiq",
     "dannielagumo",
@@ -19,7 +19,13 @@
       "code_of_conduct": {},
       "contributing": {
         "ORG_LABEL": "Simtabi"
-      }
+      },
+      "issue_bug": {},
+      "issue_feature": {},
+      "issue_config": {
+        "ORG": "imanimanyara"
+      },
+      "pull_request": {}
     },
     "simtabi": {
       "security": {
@@ -33,7 +39,13 @@
       "code_of_conduct": {},
       "contributing": {
         "ORG_LABEL": "Simtabi"
-      }
+      },
+      "issue_bug": {},
+      "issue_feature": {},
+      "issue_config": {
+        "ORG": "simtabi"
+      },
+      "pull_request": {}
     },
     "laranail": {
       "security": {
@@ -47,7 +59,16 @@
       "code_of_conduct": {},
       "contributing": {
         "ORG_LABEL": "laranail"
-      }
+      },
+      "issue_bug": {
+        "ENV_LABEL": "PHP / Laravel version",
+        "ENV_PLACEHOLDER": "e.g. PHP 8.4, Laravel 13.2"
+      },
+      "issue_feature": {},
+      "issue_config": {
+        "ORG": "laranail"
+      },
+      "pull_request": {}
     },
     "ichava": {
       "security": {
@@ -61,7 +82,13 @@
         "DOCS_EXTRA": ", starting with\n   [core's installation guide](https://github.com/ichava/core/blob/main/docs/installation.md).\n   Plain markdown, browseable on GitHub"
       },
       "code_of_conduct": {},
-      "contributing": "keep"
+      "contributing": "keep",
+      "issue_bug": {},
+      "issue_feature": {},
+      "issue_config": {
+        "ORG": "ichava"
+      },
+      "pull_request": {}
     },
     "mukoracms": {
       "security": {
@@ -73,7 +100,13 @@
         "HELP": "Thanks for using a Simtabi open source project. Here is how to get help, fastest\nfirst:\n\n1. **Issues** — for bugs and feature requests, open an issue on the relevant\n   repository, if you have access to it.\n2. **Email** — [opensource@simtabi.com](mailto:opensource@simtabi.com) for\n   anything else, including access questions.\n\nMukora repositories are private while the interfaces settle, so most support runs\nthrough your usual contact rather than a public tracker."
       },
       "code_of_conduct": {},
-      "contributing": "keep"
+      "contributing": "keep",
+      "issue_bug": {},
+      "issue_feature": {},
+      "issue_config": {
+        "ORG": "mukoracms"
+      },
+      "pull_request": {}
     },
     "brandgulp": {
       "security": {
@@ -86,7 +119,13 @@
         "HELP": "BrandGulp is a commercial product and its repositories are private.\n\n- **Customers:** use the support channel in your workspace, or your usual contact.\n- **Anything else:** [opensource@simtabi.com](mailto:opensource@simtabi.com)."
       },
       "code_of_conduct": {},
-      "contributing": "none"
+      "contributing": "none",
+      "issue_bug": {},
+      "issue_feature": {},
+      "issue_config": {
+        "ORG": "brandgulp"
+      },
+      "pull_request": {}
     }
   }
 }

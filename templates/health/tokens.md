@@ -47,6 +47,10 @@ They use their own inboxes.
 | `SUPPORT.md.tmpl` | `{{DOCS_EXTRA}}`; blocks `HELP`, `DOCS`, `EXCEPTION_JOIN` | an account with its own support prose replaces the whole `HELP` block |
 | `CONTRIBUTING.md.tmpl` | `{{ORG_LABEL}}` | only the heading varies; an account with its own guide is `"keep"` |
 | `CODE_OF_CONDUCT.md` | none | Contributor Covenant 2.1, enforcement `opensource@simtabi.com` |
+| `ISSUE_TEMPLATE/bug_report.yml.tmpl` | blocks `ENV_LABEL`, `ENV_PLACEHOLDER` | the environment field; laranail asks for the PHP / Laravel version |
+| `ISSUE_TEMPLATE/feature_request.yml.tmpl` | none | |
+| `ISSUE_TEMPLATE/config.yml.tmpl` | `{{ORG}}` | links the account's security policy page and its `SUPPORT.md`. Never Discussions: it is enabled on some repositories only, and an org default cannot tell which |
+| `PULL_REQUEST_TEMPLATE.md.tmpl` | none | |
 
 `{{#NAME}}default{{/NAME}}` is a block with a default: the master's text unless the account sets
 `NAME`. In `orgs.json`, `"keep"` means the account's own file is the source and is never rendered;
