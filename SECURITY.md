@@ -1,29 +1,88 @@
 # Security policy
 
-We take the security of every Simtabi open source project seriously.
+Simtabi LLC maintains the open-source projects in the [simtabi](https://github.com/simtabi) organization. This policy explains how to report a security vulnerability in them and what you can expect from us. A repository's own `SECURITY.md`, where one exists, adds scope and supported versions for that project and takes precedence where the two differ.
 
 ## Reporting a vulnerability
 
-Email **[security@simtabi.com](mailto:security@simtabi.com)** with the details.
-Do **not** open a public issue for a suspected vulnerability.
+Please do not report security vulnerabilities through public issues, discussions or pull requests.
 
-Include, where possible:
+Email **[security@simtabi.com](mailto:security@simtabi.com)**. This address works for every repository, public or private.
 
-- The affected repository and version.
-- A description of the issue and its impact.
-- Steps to reproduce, or a proof of concept.
+Use only that address for security reports. Other Simtabi addresses, such as `opensource@simtabi.com`, handle community mail, and a report sent to one of them may be delayed.
 
-You will receive an acknowledgement within a few business days. We will keep you
-informed as we investigate, and we will credit you in the fix's release notes
-unless you prefer otherwise.
+Where a public repository has GitHub private vulnerability reporting enabled, you can also use the **Report a vulnerability** button on that repository's **Security** tab. Use it only if the button is present; private repositories do not support it, and email remains the fallback everywhere.
 
-`security@simtabi.com` is the disclosure address and is watched for exactly this.
-It is kept separate from community mail so a report is never buried in a thread
-about a feature request — please do not send vulnerabilities to
-`opensource@simtabi.com`.
+## What to include
+
+- The repository and the affected version, tag or commit.
+- The type of issue and its potential impact.
+- Steps to reproduce, with a minimal proof of concept if you have one.
+- Any configuration or environment needed to trigger it.
+- Any known mitigation or workaround.
+- Whether and how you would like to be credited.
+
+Reports in English are easiest for us to handle.
+
+## What to expect
+
+Simtabi LLC is a small team. The times below are targets we aim to meet, not guarantees. "Business days" means Monday to Friday, excluding public holidays.
+
+| Stage | Target |
+|---|---|
+| Acknowledge your report | within 5 business days |
+| Initial assessment (confirmed, declined or more information needed) | within 15 business days |
+| Status updates while the report is open | at least every 30 days, and on any material change |
+
+We may decline a report, for example if it is out of scope or we cannot reproduce it. If so, we will tell you why. We do not promise that every report will result in a fix, a release or a security advisory, or that a fix will be available within any particular time.
+
+If you have not received an acknowledgement within 10 business days, please resend your report. If you still hear nothing, open a public issue in the affected repository asking us to contact you. Include no technical details.
+
+## Coordinated disclosure
+
+We follow coordinated vulnerability disclosure:
+
+- We ask that you keep the report confidential for **90 calendar days** from the date of your first report, or until a fix is released, whichever is sooner.
+- We may ask for an extension when a fix is complex. Extensions are by mutual agreement, normally of no more than 30 days.
+- If the vulnerability is being actively exploited or is already public, we may agree a shorter timeline with you, typically 7 days.
+- When a fix is released, we aim to publish an advisory and request a CVE identifier where appropriate. We will coordinate the publication date with you.
+
+## Safe harbor
+
+If you make a good-faith effort to comply with this policy, Simtabi LLC will consider your research to be authorized under applicable anti-hacking and anti-circumvention laws. It will not initiate or support legal action against you for accidental, good-faith violations of this policy. It waives, on a limited basis, any of its own terms of use that would interfere with that research.
+
+This safe harbor:
+
+- covers only legal claims that Simtabi LLC controls. It does not bind any third party, including GitHub, package registries, hosting providers, or anyone running our software;
+- does not authorize testing against systems or data that you do not own or have permission to test. Test against your own installation of our software;
+- requires that you avoid privacy violations, data destruction, and degradation of service. Access no more data than necessary to demonstrate the issue, and delete it afterwards.
+
+You remain responsible for complying with the law. If a third party initiates legal action against you and you complied with this policy, we will, on request, confirm that your research was conducted under it. If you are unsure whether something is within this policy, ask at security@simtabi.com before proceeding.
+
+This section is adapted from the disclose.io core terms (CC0 1.0).
 
 ## Scope
 
-This policy applies to every public repository in the
-[simtabi](https://github.com/simtabi) organization that does not carry its own
-`SECURITY.md`. A repository's own policy, when present, takes precedence.
+In scope: the source code of the public and private repositories in this organization, in their currently supported versions as stated by each repository.
+
+Out of scope:
+
+- Websites, services and infrastructure operated by Simtabi LLC. Report these to the same address; they are handled separately from this policy.
+- Vulnerabilities in third-party dependencies, GitHub, package registries or other platforms. Please report those to their maintainers. Tell us if one affects our projects.
+- Unsupported, end-of-life or archived versions and repositories.
+- Development-only tooling, test fixtures and example code not intended for production use.
+- Issues that require the integrator to use our software insecurely, such as passing unsanitized input to an API documented as unsafe.
+- Missing hardening without demonstrated impact, such as missing headers or rate limiting.
+- Volumetric denial of service, social engineering, and physical attacks.
+- Automated scanner or AI-generated output that has not been verified and reproduced.
+
+## No bounty
+
+Simtabi LLC does not run a bug bounty program and does not offer payment or other rewards for reports.
+
+## Credit
+
+With your permission, we will credit you in the advisory and changelog for the fix, under the name or handle you choose. You may also ask to remain anonymous.
+
+## About this policy
+
+This policy describes our intentions. It is not a contract, and it does not create a warranty, a service level, or an obligation to fix any issue. The software remains subject to its own license. We may update this policy at any time; the version in effect when you submitted your report applies to that report.
