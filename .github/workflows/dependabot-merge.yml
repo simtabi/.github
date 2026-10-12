@@ -1,0 +1,89 @@
+name: Dependabot merge gate
+
+# Merges a Dependabot pull request only when policy allows its update type and every check on its
+# exact head SHA is green, at least as many as on the repository's last merged PR. Rules:
+# dependabot/merge.py decide() and dependabot/README.md.
+#
+# Dry run unless `apply` is ticked on a manual run, or, for scheduled runs, the repository
+# variable DEPENDABOT_MERGE_APPLY is 'true'. Going live is that variable, not a code change.
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Merge eligible pull requests (otherwise a dry run)
+        type: boolean
+        default: false
+
+permissions: {}
+
+# Never two runs at once: a second run could decide on a PR the first is merging.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  accounts:
+    name: accounts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      orgs: ${{ steps.list.outputs.orgs }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Org list from policy.json
+        id: list
+        run: |
+          orgs=$(python3 -c 'import json; print(json.dumps(json.load(open("dependabot/policy.json"))["accounts"]["orgs"]))')
+          echo "orgs=$orgs" >> "$GITHUB_OUTPUT"
+
+  merge:
+    name: merge (${{ matrix.org }})
+    needs: accounts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        org: ${{ fromJSON(needs.accounts.outputs.orgs) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Dependency Merge Bot, not Refresh Bot: its key is a secret on this repository only, because it
+      # carries workflows: write (GitHub refuses an App merge that changes .github/workflows/ without
+      # it, and github-actions updates are the default policy's auto-merged ecosystem). Refresh Bot's
+      # key is an org secret every public repo can read, so it must never hold that permission.
+      # checks/statuses: read the head SHA's results. pull-requests + contents: write merge.
+      - name: Mint a token for ${{ matrix.org }}
+        id: token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.MERGE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.MERGE_APP_PRIVATE_KEY }}
+          owner: ${{ matrix.org }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-checks: read
+          permission-statuses: read
+          permission-workflows: write
+
+      - name: Merge gate for ${{ matrix.org }}
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          ORG: ${{ matrix.org }}
+          APPLY: ${{ (github.event_name == 'workflow_dispatch' && inputs.apply) || (github.event_name == 'schedule' && vars.DEPENDABOT_MERGE_APPLY == 'true') }}
+        run: |
+          args=(--owner "$ORG")
+          if [ "$APPLY" = "true" ]; then args+=(--apply); fi
+          python3 dependabot/merge.py "${args[@]}"

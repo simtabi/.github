@@ -1,0 +1,102 @@
+name: Dependabot reconcile
+
+# Brings every active repository of every owned org to the Dependabot standard, one pull request
+# per repository, from the shared generator in simtabi/agent-kit. Logic and safety rules:
+# dependabot/reconcile.py and dependabot/README.md.
+#
+# Runs Monday 14:00 UTC, after Dependabot's own 06:00 America/New_York run. Dry run unless
+# `apply` is ticked on a manual run, or the repository variable DEPENDABOT_RECONCILE_APPLY is
+# 'true' for scheduled runs. The personal account (imanimanyara) is not here: the GitHub App is
+# not installed on it, so it is reconciled locally with the personal gh login.
+
+on:
+  schedule:
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Push branches and open or refresh pull requests (otherwise a dry run)
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  accounts:
+    name: accounts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      orgs: ${{ steps.list.outputs.orgs }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Org list from policy.json
+        id: list
+        run: |
+          orgs=$(python3 -c 'import json; print(json.dumps(json.load(open("dependabot/policy.json"))["accounts"]["orgs"]))')
+          echo "orgs=$orgs" >> "$GITHUB_OUTPUT"
+
+  reconcile:
+    name: reconcile (${{ matrix.org }})
+    needs: accounts
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        org: ${{ fromJSON(needs.accounts.outputs.orgs) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # agent-kit is private and holds the generator. Read-only, that one repository only.
+      - name: Mint a read-only token for simtabi/agent-kit
+        id: kit-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.REFRESH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
+          owner: simtabi
+          repositories: agent-kit
+          permission-contents: read
+      - uses: actions/checkout@v7
+        with:
+          repository: simtabi/agent-kit
+          path: .agent-kit
+          token: ${{ steps.kit-token.outputs.token }}
+          persist-credentials: false
+
+      # contents: write pushes chore/dependabot-standard; pull-requests: write opens or edits the
+      # PR. No workflows permission: the reconciler writes .github/dependabot.yml, which is not
+      # under .github/workflows/, so GitHub does not require it.
+      - name: Mint a token for ${{ matrix.org }}
+        id: token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.REFRESH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
+          owner: ${{ matrix.org }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Reconcile ${{ matrix.org }}
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          ORG: ${{ matrix.org }}
+          APPLY: ${{ (github.event_name == 'workflow_dispatch' && inputs.apply) || (github.event_name == 'schedule' && vars.DEPENDABOT_RECONCILE_APPLY == 'true') }}
+        run: |
+          args=(--owner "$ORG" --generator .agent-kit)
+          if [ "$APPLY" = "true" ]; then args+=(--apply); fi
+          python3 dependabot/reconcile.py "${args[@]}"

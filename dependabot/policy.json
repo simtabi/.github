@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "accounts": {
+    "orgs": ["brandgulp", "ichava", "laranail", "mukoracms", "simsange", "simtabi", "tayariai", "tayaricms", "the-omaris", "tusente", "simbi-prjs-clt", "simbi-prjs-int"],
+    "users": ["imanimanyara"]
+  },
+  "exclude": [],
+  "schedule": {"interval": "weekly", "day": "monday", "time": "06:00", "timezone": "America/New_York"},
+  "cooldown": {"default-days": 3, "semver-major-days": 7},
+  "open-pull-requests-limit": 10,
+  "labels": ["dependencies"],
+  "commit-message-prefix": {"github-actions": "chore(actions)", "composer": "deps(composer)", "npm": "deps(npm)", "pip": "deps(pip)", "gomod": "deps(go)", "cargo": "deps(cargo)", "docker": "deps(docker)", "bundler": "deps(bundler)"},
+  "groups": {"name-pattern": "{ecosystem}-minor-and-patch", "update-types": ["minor", "patch"]},
+  "merge": {
+    "default": "actions",
+    "overrides": {},
+    "hold-label": "automerge:hold",
+    "majors": "never"
+  },
+  "local-block": {"begin": "# >>> local (kept by the generator)", "end": "# <<< local"}
+}
