@@ -6,10 +6,18 @@ name: Dependabot merge gate
 #
 # Dry run unless `apply` is ticked on a manual run, or, for scheduled runs, the repository
 # variable DEPENDABOT_MERGE_APPLY is 'true'. Going live is that variable, not a code change.
+#
+# Until the Dependency Merge Bot exists (variable MERGE_APP_CLIENT_ID and secret
+# MERGE_APP_PRIVATE_KEY on this repository), every run posts a notice and skips the merge jobs
+# instead of failing one per org. Creating the app and setting both is the owner's step:
+# dependabot/README.md, "Credentials".
 
 on:
   schedule:
-    - cron: "17 * * * *"
+    # Weekly, Tuesday 14:17 UTC: a day after Dependabot's Monday 06:00 America/New_York run and the
+    # reconciler's Monday 14:00 UTC run, so the week's pull requests have finished CI. The org
+    # caps crons at weekly; anything more urgent is a manual run.
+    - cron: "17 14 * * 2"
   workflow_dispatch:
     inputs:
       apply:
@@ -33,7 +41,27 @@ jobs:
       contents: read
     outputs:
       orgs: ${{ steps.list.outputs.orgs }}
+      ready: ${{ steps.credentials.outputs.ready }}
     steps:
+      # Only whether each is set reaches this step, never the key itself.
+      - name: Check the merge app credentials are configured
+        id: credentials
+        env:
+          HAS_CLIENT_ID: ${{ vars.MERGE_APP_CLIENT_ID != '' }}
+          HAS_PRIVATE_KEY: ${{ secrets.MERGE_APP_PRIVATE_KEY != '' }}
+        run: |
+          if [ "$HAS_CLIENT_ID" = "true" ] && [ "$HAS_PRIVATE_KEY" = "true" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          missing=()
+          [ "$HAS_CLIENT_ID" = "true" ] || missing+=("variable MERGE_APP_CLIENT_ID")
+          [ "$HAS_PRIVATE_KEY" = "true" ] || missing+=("secret MERGE_APP_PRIVATE_KEY")
+          msg="Merge gate skipped: ${missing[*]} not configured on this repository. See dependabot/README.md, Credentials."
+          echo "::notice title=Dependabot merge gate::$msg"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+          echo "ready=false" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
@@ -46,6 +74,7 @@ jobs:
   merge:
     name: merge (${{ matrix.org }})
     needs: accounts
+    if: ${{ needs.accounts.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
