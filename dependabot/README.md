@@ -13,7 +13,7 @@ Both tools are dry runs unless told otherwise, and neither ever pushes to a defa
 | `merge.py` | For one account, finds open pull requests by `dependabot[bot]`, decides each with the pure function `decide()`, and with `--apply` merges eligible ones with `gh pr merge --squash --match-head-commit <sha>`. |
 | `common.py` | Policy loading and validation, the `gh` wrapper, repository listing and the active filter, summary output. |
 | `.github/workflows/dependabot-reconcile.yml` | Monday 14:00 UTC (after Dependabot's own 06:00 America/New_York run) and on demand, one job per org. |
-| `.github/workflows/dependabot-merge.yml` | Hourly at :17 and on demand, one org at a time, never two runs at once. |
+| `.github/workflows/dependabot-merge.yml` | Weekly, Tuesday 14:17 UTC, and on demand, one org at a time, never two runs at once. Skips with a notice while the merge app's credentials are not configured. |
 | `.github/workflows/ci.yml` | Unit tests and actionlint on every pull request to this repository. |
 
 Every run prints a table and appends it to the job summary: for the reconciler `repo · status · note`, for the merge gate `repo · PR · action · reason`.
@@ -49,7 +49,7 @@ Client accounts (`adelsaiq`, `dannielagumo`, `joemanch`) are refused by both scr
 3. Levels: `off` allows nothing; `actions` allows non-major GitHub Actions updates; `patch` adds other ecosystems' patches; `minor` adds their minors. Majors never. Override precedence is `owner/repo`, then `owner/*`, then `default`.
 4. Every check run on the head SHA has completed with `success`, `neutral` or `skipped`, and every commit status is `success`. Anything pending holds.
 5. At least as many check runs as the floor: the count on the head of the repository's most recently merged pull request not authored by Dependabot. With no such pull request the floor is 1 and one check name must look like a test (`test`, `pest`, `phpunit`, `pytest`, `jest`, `vitest`, `spec`).
-6. `mergeable_state` is `clean`. GitHub computes it lazily, so a first read of `unknown` holds until the next hourly run.
+6. `mergeable_state` is `clean`. GitHub computes it lazily, so a first read of `unknown` holds until the next run.
 
 A workflow that is path-filtered off a Dependabot pull request lowers its check count below the floor, and the pull request is held for a person. That is the intended failure direction.
 
@@ -90,7 +90,7 @@ Both workflows ship as dry runs.
 | Merge gate on schedule | Set the repository variable `DEPENDABOT_MERGE_APPLY` to `true`. |
 | Back to dry run | Delete the variable or set it to anything else. |
 
-**Prerequisite for the merge gate:** Refresh Bot's manifest grants `contents` and `pull_requests` only. The gate also needs **checks: read**, **statuses: read** and **workflows: write** (merging an Actions update changes `.github/workflows/`, which GitHub refuses an App without it). Until the App is granted those and each org approves the new permissions, the token step fails rather than the gate running half-blind. The reconciler needs nothing beyond the current two.
+**Prerequisite for the merge gate:** Refresh Bot's manifest grants `contents` and `pull_requests` only. The gate also needs **checks: read**, **statuses: read** and **workflows: write** (merging an Actions update changes `.github/workflows/`, which GitHub refuses an App without it). Until the App is granted those and each org approves the new permissions, the token step fails rather than the gate running half-blind. While `MERGE_APP_CLIENT_ID` or `MERGE_APP_PRIVATE_KEY` is not set at all, the gate posts a notice and skips its merge jobs instead. The reconciler needs nothing beyond the current two.
 
 ## The personal account
 
