@@ -10,6 +10,8 @@ that apply to every simtabi repository lacking its own copy.
 ## <a name="documentation"></a>Documentation
 
 - [Health files](docs/health-files.md) — where each health file lives, why, and how the org copies are rendered from the masters in [`templates/health/`](templates/health/).
+- [simtabi-bot](bot/README.md) — the one automation app: where its key lives, the per-job token policy, adding a job.
+- [Dependabot control plane](dependabot/README.md) — the reconciler and the merge gate that run as the bot.
 
 ## License
 
