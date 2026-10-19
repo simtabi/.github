@@ -49,6 +49,11 @@ jobs:
     needs: accounts
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    environment: simtabi-bot
+    # simtabi-bot once its client ID is in the environment, Refresh Bot until then. The pair is chosen on
+    # one condition, so a client ID is never sent with the other app's key.
+    env:
+      BOT_CLIENT_ID: ${{ vars.SIMTABI_BOT_CLIENT_ID != '' && vars.SIMTABI_BOT_CLIENT_ID || vars.REFRESH_APP_CLIENT_ID }}
     permissions:
       contents: read
     strategy:
@@ -61,16 +66,16 @@ jobs:
         with:
           persist-credentials: false
 
-      # agent-kit is private and holds the generator. Read-only, that one repository only.
+      # agent-kit is private and holds the generator. bot/policy.json `agent-kit-read`: contents read,
+      # that one repository only.
       - name: Mint a read-only token for simtabi/agent-kit
         id: kit-token
-        uses: actions/create-github-app-token@v3
+        uses: ./.github/actions/bot-token
         with:
-          client-id: ${{ vars.REFRESH_APP_CLIENT_ID }}
-          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
+          job: agent-kit-read
           owner: simtabi
-          repositories: agent-kit
-          permission-contents: read
+          client-id: ${{ env.BOT_CLIENT_ID }}
+          private-key: ${{ vars.SIMTABI_BOT_CLIENT_ID != '' && secrets.SIMTABI_BOT_PRIVATE_KEY || secrets.REFRESH_APP_PRIVATE_KEY }}
       - uses: actions/checkout@v7
         with:
           repository: simtabi/agent-kit
@@ -78,18 +83,17 @@ jobs:
           token: ${{ steps.kit-token.outputs.token }}
           persist-credentials: false
 
-      # contents: write pushes chore/dependabot-standard; pull-requests: write opens or edits the
-      # PR. No workflows permission: the reconciler writes .github/dependabot.yml, which is not
+      # bot/policy.json `dependabot-reconcile`: contents write pushes chore/dependabot-standard,
+      # pull-requests write opens or edits the PR. No workflows permission: dependabot.yml is not
       # under .github/workflows/, so GitHub does not require it.
       - name: Mint a token for ${{ matrix.org }}
         id: token
-        uses: actions/create-github-app-token@v3
+        uses: ./.github/actions/bot-token
         with:
-          client-id: ${{ vars.REFRESH_APP_CLIENT_ID }}
-          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
+          job: dependabot-reconcile
           owner: ${{ matrix.org }}
-          permission-contents: write
-          permission-pull-requests: write
+          client-id: ${{ env.BOT_CLIENT_ID }}
+          private-key: ${{ vars.SIMTABI_BOT_CLIENT_ID != '' && secrets.SIMTABI_BOT_PRIVATE_KEY || secrets.REFRESH_APP_PRIVATE_KEY }}
 
       - name: Reconcile ${{ matrix.org }}
         env:

@@ -23,6 +23,8 @@ jobs:
           persist-credentials: false
       - name: Dependabot control-plane tests
         run: python3 -m unittest discover -s dependabot/tests -v
+      - name: Bot policy tests
+        run: python3 -m unittest discover -s bot/tests -v
 
   actionlint:
     name: actionlint
