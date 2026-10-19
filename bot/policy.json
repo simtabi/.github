@@ -1,0 +1,30 @@
+{
+    "version": 1,
+    "about": "Which simtabi-bot token each job may mint. A job not named here gets no token. Owners '*' means every org in dependabot/policy.json accounts.orgs; client accounts are refused whatever is written here.",
+    "ceiling": {
+        "contents": "write",
+        "pull-requests": "write",
+        "issues": "write",
+        "workflows": "write",
+        "checks": "read",
+        "statuses": "read"
+    },
+    "jobs": {
+        "dependabot-merge": {
+            "why": "Merge a policy-allowed Dependabot pull request once every check on its head is green. Workflows: write because GitHub refuses an app merge that changes .github/workflows/.",
+            "owners": "*",
+            "permissions": {"contents": "write", "pull-requests": "write", "workflows": "write", "checks": "read", "statuses": "read"}
+        },
+        "dependabot-reconcile": {
+            "why": "Push chore/dependabot-standard and open or refresh its pull request. dependabot.yml is not under .github/workflows/, so no workflows permission.",
+            "owners": "*",
+            "permissions": {"contents": "write", "pull-requests": "write"}
+        },
+        "agent-kit-read": {
+            "why": "Check out the private generator the reconciler runs.",
+            "owners": ["simtabi"],
+            "repositories": ["agent-kit"],
+            "permissions": {"contents": "read"}
+        }
+    }
+}

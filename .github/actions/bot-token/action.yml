@@ -1,0 +1,51 @@
+name: simtabi-bot token
+description: >
+  Mint a simtabi-bot installation token narrowed to what bot/policy.json grants the named job on one owner.
+  Refuses a job or owner the policy does not allow. Needs this repository checked out at the workspace root.
+
+inputs:
+  job:
+    description: Job name in bot/policy.json
+    required: true
+  owner:
+    description: Org the token acts on
+    required: true
+  client-id:
+    description: simtabi-bot client ID
+    required: true
+  private-key:
+    description: simtabi-bot private key
+    required: true
+
+outputs:
+  token:
+    description: The installation token, revoked when the job ends
+    value: ${{ steps.mint.outputs.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve ${{ inputs.job }} for ${{ inputs.owner }} from the bot policy
+      id: grant
+      shell: bash
+      env:
+        JOB: ${{ inputs.job }}
+        OWNER: ${{ inputs.owner }}
+      run: python3 "$GITHUB_WORKSPACE/bot/resolve.py" --job "$JOB" --owner "$OWNER" >> "$GITHUB_OUTPUT"
+
+    # Every permission the app's ceiling holds is passed, empty when the job does not get it; resolve.py
+    # refuses a job with none, because no permission inputs at all would mean the whole app.
+    - name: Mint the token
+      id: mint
+      uses: actions/create-github-app-token@v3
+      with:
+        client-id: ${{ inputs.client-id }}
+        private-key: ${{ inputs.private-key }}
+        owner: ${{ inputs.owner }}
+        repositories: ${{ steps.grant.outputs.repositories }}
+        permission-contents: ${{ steps.grant.outputs.permission-contents }}
+        permission-pull-requests: ${{ steps.grant.outputs.permission-pull-requests }}
+        permission-issues: ${{ steps.grant.outputs.permission-issues }}
+        permission-workflows: ${{ steps.grant.outputs.permission-workflows }}
+        permission-checks: ${{ steps.grant.outputs.permission-checks }}
+        permission-statuses: ${{ steps.grant.outputs.permission-statuses }}
