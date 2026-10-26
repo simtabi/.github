@@ -10,7 +10,7 @@ GitHub reads `SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md` and `CODE_OF_CONDUCT
 |---|---|
 | The cascade stays inside one account | `simtabi/.github` reaches simtabi repositories only. laranail, ichava and every other account each need their own `.github` copy |
 | A repository's own file replaces the default outright | No merge, no inheritance by section. A repository with its own `SECURITY.md` never shows the org policy |
-| `LICENSE` never cascades | It is not in the health-file set, licence detection reads the repository's own file, and it ships in every dist archive. Every repository keeps its own |
+| `LICENSE` never cascades | It is not in the health-file set, licence detection reads the repository's own file, and it ships in every dist archive. Every repository keeps its own, started from the masters in `templates/health/LICENSE.*.repo.tmpl` (see [`licenses.md`](../templates/health/licenses.md)) |
 | `CHANGELOG.md` never cascades | It is a record of one repository's releases. There is no org default and never will be |
 
 A private repository inherits from a public `.github` like any other. A single edit to an org file can therefore change the instructions on dozens of repositories at once: state which ones before editing.
