@@ -4,14 +4,14 @@ The starting text for a repository's `LICENSE`, one master per licence, so every
 
 ## Why these are not rendered at org level
 
-`LICENSE` never cascades. It is not in GitHub's community-health set, licence detection reads the repository's own file, and it ships in every dist archive, so every repository keeps its own. These masters are therefore a starting shape for a new repository, like the `*.repo.md.tmpl` files in `../health/`, and `bin/render-health.sh` does not read them. They are copied by hand, or by the repository scaffolder.
+`LICENSE` never cascades. It is not in GitHub's community-health set, licence detection reads the repository's own file, and it ships in every dist archive, so every repository keeps its own. These masters are therefore a starting shape for a new repository, like the other `*.repo.*.tmpl` files in this directory, and `bin/render-health.sh` does not read them. They are copied by hand, or by the repository scaffolder.
 
 ## Which master
 
 | Repository | Master | `composer.json` / `package.json` |
 |---|---|---|
-| Public, open source | `LICENSE.MIT.tmpl` | `"license": "MIT"` |
-| Private, or proprietary however visible | `LICENSE.proprietary.tmpl` | `"license": "proprietary"` (Composer) · `"UNLICENSED"` and `"private": true` (npm) |
+| Public, open source | `LICENSE.MIT.repo.tmpl` | `"license": "MIT"` |
+| Private, or proprietary however visible | `LICENSE.proprietary.repo.tmpl` | `"license": "proprietary"` (Composer) · `"UNLICENSED"` and `"private": true` (npm) |
 
 Private and proprietary are separate facts. A private repository can still be MIT, and a repository that ships code under a licence forbidding redistribution, such as Untitled UI PRO, is proprietary for that reason alone. Pick by what the code is allowed to do, then set the visibility to match.
 
