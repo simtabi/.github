@@ -30,11 +30,44 @@ jobs:
     name: accounts
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Reads only whether each credential is set, never a value; needs the environment to see them at all.
+    environment: simtabi-bot
     permissions:
       contents: read
     outputs:
       orgs: ${{ steps.list.outputs.orgs }}
+      ready: ${{ steps.credentials.outputs.ready }}
     steps:
+      # The pair is chosen on SIMTABI_BOT_CLIENT_ID alone, below and in every token step, so a client ID
+      # is never sent with the other app's key. That makes a half-configured bot the one real hazard:
+      # without this check it is twelve create-github-app-token failures instead of one notice.
+      - name: Check which bot credentials are configured
+        id: credentials
+        env:
+          HAS_BOT_ID: ${{ vars.SIMTABI_BOT_CLIENT_ID != '' }}
+          HAS_BOT_KEY: ${{ secrets.SIMTABI_BOT_PRIVATE_KEY != '' }}
+          HAS_REFRESH_ID: ${{ vars.REFRESH_APP_CLIENT_ID != '' }}
+          HAS_REFRESH_KEY: ${{ secrets.REFRESH_APP_PRIVATE_KEY != '' }}
+        run: |
+          if [ "$HAS_BOT_ID" = "true" ]; then
+            if [ "$HAS_BOT_KEY" = "true" ]; then
+              msg="Running as simtabi-bot."
+              ready=true
+            else
+              msg="Reconcile skipped: variable SIMTABI_BOT_CLIENT_ID is set but secret SIMTABI_BOT_PRIVATE_KEY is not, so every org would fail to mint. Set the key, or unset the variable to fall back to Refresh Bot. See bot/README.md."
+              ready=false
+            fi
+          elif [ "$HAS_REFRESH_ID" = "true" ] && [ "$HAS_REFRESH_KEY" = "true" ]; then
+            msg="Running as Refresh Bot (deprecated): SIMTABI_BOT_CLIENT_ID is not set yet. See bot/README.md."
+            ready=true
+          else
+            msg="Reconcile skipped: neither the simtabi-bot nor the Refresh Bot credential pair is complete in the simtabi-bot environment. See bot/README.md."
+            ready=false
+          fi
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
+          [ "$ready" = "true" ] || echo "::notice title=Dependabot reconcile::$msg"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
@@ -47,6 +80,7 @@ jobs:
   reconcile:
     name: reconcile (${{ matrix.org }})
     needs: accounts
+    if: ${{ needs.accounts.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: simtabi-bot

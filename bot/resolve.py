@@ -43,6 +43,19 @@ def load_policy(path=DEFAULT_POLICY):
             raise ValueError(f"job {name}: owners must be '*' or a non-empty list")
         if isinstance(owners, list) and common.CLIENT_ACCOUNTS & set(owners):
             raise ValueError(f"job {name}: client accounts are never managed")
+        if "repositories" in job:
+            repos = job["repositories"]
+            # An empty list reads as "narrowed" and resolves to "", which the action treats as every
+            # repository of the owner -- the exact opposite. Omit the key to mean all.
+            if not (isinstance(repos, list) and repos and all(isinstance(r, str) and r for r in repos)):
+                raise ValueError(
+                    f"job {name}: repositories must be a non-empty list of names, or absent for all")
+            if any("/" in r for r in repos):
+                raise ValueError(f"job {name}: repositories are names, not owner/name")
+            # The same names would otherwise be sent to every managed org, and a repository of that
+            # name in another org would be handed a token it was never meant to have.
+            if owners == "*":
+                raise ValueError(f"job {name}: narrowing repositories needs an explicit owners list")
     return policy
 
 
