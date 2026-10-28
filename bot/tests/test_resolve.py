@@ -72,6 +72,30 @@ class ResolveTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no permissions"):
             resolve.load_policy(write_policy(p))
 
+    def test_an_empty_repositories_list_does_not_load(self):
+        # It reads as "narrowed" and resolves to "", which the action treats as every repository of the
+        # owner. The opposite of what whoever wrote it meant, and silent.
+        p = copy.deepcopy(POLICY)
+        p["jobs"]["agent-kit-read"]["repositories"] = []
+        with self.assertRaisesRegex(ValueError, "non-empty list of names"):
+            resolve.load_policy(write_policy(p))
+
+    def test_repositories_written_as_owner_slash_name_do_not_load(self):
+        # create-github-app-token takes bare names; "simtabi/agent-kit" matches no repository and the
+        # token comes back scoped to nothing.
+        p = copy.deepcopy(POLICY)
+        p["jobs"]["agent-kit-read"]["repositories"] = ["simtabi/agent-kit"]
+        with self.assertRaisesRegex(ValueError, "not owner/name"):
+            resolve.load_policy(write_policy(p))
+
+    def test_narrowed_repositories_with_star_owners_do_not_load(self):
+        # The same names would go to every managed org, handing a token to a same-named repository
+        # somewhere it was never meant to reach.
+        p = copy.deepcopy(POLICY)
+        p["jobs"]["dependabot-reconcile"]["repositories"] = ["agent-kit"]
+        with self.assertRaisesRegex(ValueError, "explicit owners list"):
+            resolve.load_policy(write_policy(p))
+
     def test_permission_above_the_ceiling_does_not_load(self):
         for perm, level in (("checks", "write"), ("administration", "write")):
             p = copy.deepcopy(POLICY)
@@ -111,6 +135,24 @@ class ResolveTest(unittest.TestCase):
                         asked.add(line.split(":", 1)[1].strip().strip("'\""))
         self.assertGreaterEqual(len(asked), 3)
         self.assertEqual(asked - set(POLICY["jobs"]), set())
+
+    def test_every_workflow_that_mints_a_token_skips_when_the_credentials_are_not_ready(self):
+        # A half-configured app is one notice, not one create-github-app-token failure per org. The
+        # merge gate had this from the start; the reconciler did not, and would have failed twelve
+        # times over once Refresh Bot's fallback is retired.
+        minting = []
+        for name in sorted(os.listdir(WORKFLOWS)):
+            if not name.endswith((".yml", ".yaml")):
+                continue
+            with open(os.path.join(WORKFLOWS, name), encoding="utf-8") as fh:
+                text = fh.read()
+            if "actions/bot-token" in text:
+                minting.append((name, text))
+        self.assertGreaterEqual(len(minting), 2, "no workflow mints a token; this sweep proves nothing")
+        for name, text in minting:
+            with self.subTest(workflow=name):
+                self.assertIn("outputs.ready", text,
+                              f"{name} mints a token without gating on a readiness check")
 
 
 if __name__ == "__main__":
