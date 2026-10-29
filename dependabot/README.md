@@ -23,7 +23,7 @@ Every run prints a table and appends it to the job summary: for the reconciler `
 | Key | Value | Meaning |
 |---|---|---|
 | `version` | `1` | Named in the header of every generated file. Bump it when the rendered shape changes. |
-| `accounts.orgs` | 12 owned orgs | Reconciled and merge-gated by the workflows, with a `simtabi-bot` token per org. |
+| `accounts.orgs` | 10 owned orgs | Reconciled and merge-gated by the workflows, with a `simtabi-bot` token per org. |
 | `accounts.users` | `imanimanyara` | Not covered by the GitHub App; run locally (below). |
 | `exclude` | `[{"repo": "owner/name", "reason": "..."}]` | Repositories neither script touches. A reason is required. |
 | `schedule` | weekly, Monday 06:00, America/New_York | The documented convention. |
@@ -91,6 +91,23 @@ Both workflows ship as dry runs.
 | Reconciler on schedule | Set the repository variable `DEPENDABOT_RECONCILE_APPLY` to `true`. |
 | Merge gate on schedule | Set the repository variable `DEPENDABOT_MERGE_APPLY` to `true`. |
 | Back to dry run | Delete the variable or set it to anything else. |
+
+> **`accounts.orgs` is maintained by hand and nothing checks it against GitHub.** It carried
+> `tayaricms` and `the-omaris` until 2026-10-29, by which point both organisations had been deleted —
+> every dispatch spent two matrix jobs on accounts that could not exist. It hid because a deleted org
+> and an org the app is not installed on fail at the same step with the same
+> `404 … get-a-user-installation-for-the-authenticated-app`, so twelve identical failures looked like
+> one cause. No test covers this: the check needs the network, and CI has no credential that can list
+> an owner's organisations. Re-derive the roster when orgs change, and compare:
+>
+> ```bash
+> gh api user/orgs --paginate --jq '.[].login' | sort > /tmp/real
+> python3 -c 'import json;print("\n".join(sorted(json.load(open("dependabot/policy.json"))["accounts"]["orgs"])))' | comm -23 - /tmp/real
+> ```
+>
+> Anything printed is in the policy and not in your organisations. Note that
+> `GET /users/{login}` answers 200 for all three deleted orgs here, so it cannot be used for this —
+> `GET /orgs/{login}` and `GET /user/orgs` are the endpoints that tell the truth.
 
 **Prerequisite for the merge gate:** `simtabi-bot` created and installed on every org in `accounts.orgs`, with its client ID and key in the `simtabi-bot` environment. The gate needs **checks: read**, **statuses: read** and **workflows: write** (merging an Actions update changes `.github/workflows/`, which GitHub refuses an App without it); if an org has not approved those, the token step fails rather than the gate running half-blind. While `SIMTABI_BOT_CLIENT_ID` or `SIMTABI_BOT_PRIVATE_KEY` is not set at all, the gate posts a notice and skips its merge jobs instead.
 
