@@ -1,7 +1,7 @@
 {
   "version": 1,
   "accounts": {
-    "orgs": ["brandgulp", "ichava", "laranail", "mukoracms", "simsange", "simtabi", "tayariai", "tayaricms", "the-omaris", "tusente", "simbi-prjs-clt", "simbi-prjs-int"],
+    "orgs": ["brandgulp", "ichava", "laranail", "mukoracms", "simsange", "simtabi", "tayariai", "tusente", "simbi-prjs-clt", "simbi-prjs-int"],
     "users": ["imanimanyara"]
   },
   "exclude": [],
