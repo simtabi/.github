@@ -133,9 +133,16 @@ def reconcile_repo(repo, owner, gh, shell, opts, policy, workdir):
     if rc != 1:
         return f"skipped:generator-exit-{rc}", "the generator could not render this file safely"
 
+    # `render --write`, not `check --write`. `check --write` only creates the file or appends
+    # an ecosystem it is missing, so a repository whose file covers everything and is merely
+    # wrong -- which is what drift is -- came back "skipped:write-made-no-change" and was
+    # never fixed. `render` replaces everything outside the local block, which is the whole
+    # point of the reconciler. Measured 2026-11-02: all five repositories sampled across
+    # simtabi reported that status, so nothing had ever been proposed.
+    #
     # `--strict` is check-only: the generator refuses it beside `--write` with exit 2, which
     # silently skipped every repository from the day agent-kit started enforcing that.
-    write = [sys.executable, opts.generator_script, "check", dest, "--write", "--policy", opts.policy]
+    write = [sys.executable, opts.generator_script, "render", dest, "--write", "--policy", opts.policy]
     rc = shell.run(write, check=False).returncode
     if rc not in (0, 1):
         return f"skipped:write-exit-{rc}", ""
