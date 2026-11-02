@@ -26,8 +26,9 @@ Every project here started as an itch we had to scratch:
 - [osaat](https://github.com/simtabi/osaat) — for the day someone asks, "what
   exactly is installed on this machine?" It audits and backs up applications
   on macOS, Linux, and Unix.
-- [ssh-manager](https://github.com/simtabi/ssh-manager) — one profile per
-  client, with every key and config where it belongs.
+- [authama](https://github.com/simtabi/authama) — the Authentication Access
+  Manager. One profile per client, with every SSH key and config where it
+  belongs, plus the package-manager and git auth tokens that go with them.
 - [release-kit](https://github.com/simtabi/release-kit) — one config file, one
   command, and every registry your project publishes to.
 - [laranail](https://github.com/laranail) — our Laravel package family: the
