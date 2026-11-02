@@ -208,6 +208,77 @@ class PlanTest(unittest.TestCase):
         self.assertTrue(writes, "drifting repositories are written")
         self.assertFalse([c for c in writes if "--strict" in c])
 
+    # --- the per-run budget -------------------------------------------------------------
+    # Going live without one meant 118 pull requests across 256 repositories in a single
+    # weekly run, measured 2026-11-02. These three cases are what make the switch safe to
+    # flip: the budget holds, deferring is not skipping, and an open pull request is still
+    # refreshed once the budget is spent.
+
+    def three_drifting(self):
+        routes = self.base_routes()
+        routes["orgs/simtabi/repos"] = [repo("d1"), repo("d2"), repo("d3")]
+        return routes, {"d1": 1, "d2": 1, "d3": 1}
+
+    def test_the_budget_caps_new_pull_requests(self):
+        routes, rc = self.three_drifting()
+        captured = []
+        orig = common.write_summary
+        common.write_summary = captured.append
+        try:
+            code, gh, _ = self.run_main(routes, rc, "--apply", "--max-new", "1")
+        finally:
+            common.write_summary = orig
+        self.assertEqual(code, 0)
+        self.assertEqual(len([r for r in gh.runs if r[1] == "create"]), 1)
+        self.assertEqual(captured[0].count("deferred:rate-limit"), 2)
+
+    def test_a_deferred_repository_is_not_reported_as_skipped(self):
+        # "skipped" means a decision was taken about that repository. A budget says nothing
+        # about it, so the status has to read differently or a capped run looks like a clean
+        # estate.
+        routes, rc = self.three_drifting()
+        captured = []
+        orig = common.write_summary
+        common.write_summary = captured.append
+        try:
+            self.run_main(routes, rc, "--apply", "--max-new", "1")
+        finally:
+            common.write_summary = orig
+        self.assertIn("Budget: 1 new pull requests per run, 2 deferred", captured[0])
+        self.assertNotIn("skipped:rate", captured[0])
+
+    def test_an_open_pull_request_is_still_refreshed_past_the_budget(self):
+        # pr-stale already has one open; leaving it stale would be worse than opening nothing.
+        routes = self.base_routes()
+        routes["orgs/simtabi/repos"] = [repo("d1"), repo("pr-stale")]
+        code, gh, _ = self.run_main(routes, {"d1": 1, "pr-stale": 1}, "--apply", "--max-new", "1")
+        self.assertEqual(code, 0)
+        verbs = sorted(r[1] for r in gh.runs)
+        self.assertIn("create", verbs)
+        self.assertIn("edit", verbs)
+
+    def test_no_budget_means_no_limit(self):
+        routes, rc = self.three_drifting()
+        code, gh, _ = self.run_main(routes, rc, "--apply", "--max-new", "0")
+        self.assertEqual(code, 0)
+        self.assertEqual(len([r for r in gh.runs if r[1] == "create"]), 3)
+
+    def test_the_budget_does_not_mislabel_a_repository_it_never_reached(self):
+        # The budget was first spent before the work, so a conforming repository came back
+        # `deferred` without anyone having looked at it -- laranail read 63 deferred where
+        # only 64 of 77 drift. Only a NEW pull request may spend it.
+        routes = self.base_routes()
+        routes["orgs/simtabi/repos"] = [repo("d1"), repo("d2"), repo("conforming")]
+        captured = []
+        orig = common.write_summary
+        common.write_summary = captured.append
+        try:
+            self.run_main(routes, {"d1": 1, "d2": 1, "conforming": 0}, "--apply", "--max-new", "1")
+        finally:
+            common.write_summary = orig
+        self.assertRegex(captured[0], r"\| simtabi/conforming \| conforms \|")
+        self.assertEqual(captured[0].count("deferred:rate-limit"), 1)
+
     def test_the_rewrite_uses_render_not_check(self):
         # `check --write` creates or appends; it does not rewrite a file that is merely
         # wrong, which is what drift is. Measured 2026-11-02: every repository sampled came
