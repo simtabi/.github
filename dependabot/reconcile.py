@@ -191,6 +191,10 @@ def main(argv=None, gh=None, shell=None):
     ap.add_argument("--policy", default=common.DEFAULT_POLICY)
     ap.add_argument("--apply", action="store_true", help="push branches and open/refresh PRs")
     ap.add_argument("--repo", action="append", default=[], help="limit to these names (repeatable)")
+    ap.add_argument("--max-new", type=int, default=None,
+                    help="open at most N NEW pull requests this run (default: policy "
+                         "max-new-per-run). Refreshing one that is already open does not count. "
+                         "0 means no limit.")
     ap.add_argument("--git-name", default=os.environ.get("RECONCILE_GIT_NAME", "Imani Manyara"))
     ap.add_argument("--git-email", default=os.environ.get("RECONCILE_GIT_EMAIL", "imanimanyara@users.noreply.github.com"))
     opts = ap.parse_args(argv)
@@ -200,6 +204,8 @@ def main(argv=None, gh=None, shell=None):
 
     policy = common.load_policy(opts.policy)
     kind = common.account_kind(policy, opts.owner)
+    if opts.max_new is None:
+        opts.max_new = int(policy.get("max-new-per-run", 0))
     if not os.path.isfile(opts.generator_script):
         print(f"reconcile: generator not found at {opts.generator_script}", file=sys.stderr)
         return 2
@@ -213,9 +219,21 @@ def main(argv=None, gh=None, shell=None):
     errors = 0
     workdir = tempfile.mkdtemp(prefix="dependabot-reconcile-")
     try:
+        opened = 0
         for repo in active:
             try:
+                if opts.max_new and opened >= opts.max_new:
+                    # The budget is for NEW pull requests. A repository whose pull request is
+                    # already open still gets refreshed, because leaving a stale one open is
+                    # worse than opening nothing.
+                    if not open_pr(gh, repo["full_name"], opts.owner):
+                        rows.append((repo["full_name"], "deferred:rate-limit",
+                                     f"budget of {opts.max_new} new pull requests spent; "
+                                     "the next run takes this one"))
+                        continue
                 status, note = reconcile_repo(repo, opts.owner, gh, shell, opts, policy, workdir)
+                if status in ("opened", "would-open"):
+                    opened += 1
             except Exception as exc:  # one repository's failure must not stop the others
                 errors += 1
                 status, note = "error", str(exc)[:300]
@@ -227,7 +245,12 @@ def main(argv=None, gh=None, shell=None):
 
     rows.sort(key=lambda r: r[0].lower())
     mode = "apply" if opts.apply else "dry run"
-    head = f"## Dependabot reconcile: {opts.owner} ({mode})\n\n{len(repos)} repositories listed, {len(active)} active.\n\n"
+    deferred = sum(1 for r in rows if r[1] == "deferred:rate-limit")
+    budget = (f" Budget: {opts.max_new} new pull requests per run"
+              + (f", {deferred} deferred to a later run." if deferred else ", none deferred.")
+              if opts.max_new else "")
+    head = (f"## Dependabot reconcile: {opts.owner} ({mode})\n\n"
+            f"{len(repos)} repositories listed, {len(active)} active.{budget}\n\n")
     text = head + common.markdown_table(["repo", "status", "note"], rows)
     print(text)
     common.write_summary(text)

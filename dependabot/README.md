@@ -28,7 +28,8 @@ Every run prints a table and appends it to the job summary: for the reconciler `
 | `exclude` | `[{"repo": "owner/name", "reason": "..."}]` | Repositories neither script touches. A reason is required. |
 | `schedule` | weekly, Monday 06:00, America/New_York | The documented convention. |
 | `cooldown` | 3 days, 7 for majors | A release is not proposed the day it ships. |
-| `open-pull-requests-limit` | `10` | Per ecosystem entry. |
+| `open-pull-requests-limit` | `10` | Per ecosystem entry. Dependabot's own cap, not the reconciler's. |
+| `max-new-per-run` | `5` | The reconciler's own cap: at most this many **new** pull requests per account per run. A pull request already open is still refreshed past it. `0` removes the limit. |
 | `labels` | `["dependencies"]` | Applied to every Dependabot pull request. |
 | `commit-message-prefix` | per ecosystem | `chore(actions)`, `deps(composer)`, `deps(npm)`, … |
 | `groups` | `{ecosystem}-minor-and-patch`, minor + patch | One grouped pull request per ecosystem; majors stay one each. |
@@ -84,6 +85,23 @@ Dependency Merge Bot this section used to describe was never created; its job is
 ## Going live
 
 Both workflows ship as dry runs.
+
+> **The reconciler is rate limited, and that is what makes going live safe.** Measured
+> 2026-11-02, before the limit existed: a first apply run would have opened **118 pull
+> requests across 256 repositories** -- 64 in laranail, 38 in simtabi, 15 in ichava, 1 in
+> simbi-prjs-clt. Against the 773 pull requests in the week of 2026-09-30 that made
+> "fewer, fuller PRs" a rule, that is not a switch to flip blind.
+>
+> `policy.json`'s `max-new-per-run` (5) caps **new** pull requests per account per run, so a
+> scheduled week opens at most 5 x the number of accounts with drift and the estate converges
+> over a few weeks instead of in one burst. `--max-new N` overrides it; `--max-new 0` removes
+> the limit. A repository whose pull request is **already open** is still refreshed past the
+> budget -- leaving a stale one open is worse than opening nothing.
+>
+> A repository held back reads `deferred:rate-limit`, never `skipped:`, and the summary says
+> how many were deferred. That distinction is load-bearing: `skipped` means a decision was
+> taken about that repository, and a budget says nothing about it. Without it a capped run
+> looks like a clean estate -- which is exactly how the two defects in #15 and #16 hid.
 
 | Step | How |
 |---|---|
