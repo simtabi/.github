@@ -3,6 +3,10 @@ name: CI
 on:
   pull_request:
   workflow_dispatch:
+  # The post-merge check: CI runs on pull requests only, so this weekly run on the default
+  # branch is what notices drift on main (an action release, two green PRs that interact).
+  schedule:
+    - cron: "0 7 * * 1"
 
 permissions: {}
 
