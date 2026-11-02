@@ -98,6 +98,11 @@ Both workflows ship as dry runs.
 > the limit. A repository whose pull request is **already open** is still refreshed past the
 > budget -- leaving a stale one open is worse than opening nothing.
 >
+> The budget is spent at the moment a **new** pull request is decided, not before the work.
+> Spending it earlier is cheaper and misreports: a conforming repository came back `deferred`
+> with nobody having looked at it, and laranail's summary read 63 deferred when only 64 of its
+> 77 active repositories drift at all.
+>
 > A repository held back reads `deferred:rate-limit`, never `skipped:`, and the summary says
 > how many were deferred. That distinction is load-bearing: `skipped` means a decision was
 > taken about that repository, and a budget says nothing about it. Without it a capped run
