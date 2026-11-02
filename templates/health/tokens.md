@@ -30,11 +30,25 @@ Public repository with private vulnerability reporting enabled:
 - **Fallback:** email **[security@simtabi.com](mailto:security@simtabi.com)**, if you have no GitHub account.
 ```
 
-Private repository, or reporting not enabled:
+Public repository with reporting not yet enabled:
 
 ```markdown
 Email **[security@simtabi.com](mailto:security@simtabi.com)**.
 ```
+
+Private repository. GitHub offers private vulnerability reporting on public repositories only, so
+say so rather than leave a reader looking for a button that cannot exist:
+
+```markdown
+Email **[security@simtabi.com](mailto:security@simtabi.com)**.
+
+> **GitHub private vulnerability reporting is not available here.** It is a public-repository
+> feature and this repository is private, so its Security tab offers no *Report a vulnerability*
+> button and the API answers `404`. If this repository is ever made public, enable private
+> vulnerability reporting and name it above the email address.
+```
+
+Never write "once it is enabled" in a private repository: it cannot be enabled there.
 
 Client-owned accounts (`adelsaiq`, `dannielagumo`, `joemanch`) never render from these templates.
 They use their own inboxes.

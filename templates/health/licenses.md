@@ -12,6 +12,7 @@ The starting text for a repository's `LICENSE`, one master per licence, so every
 |---|---|---|
 | Public, open source | `LICENSE.MIT.repo.tmpl` | `"license": "MIT"` |
 | Private, or proprietary however visible | `LICENSE.proprietary.repo.tmpl` | `"license": "proprietary"` (Composer) · `"UNLICENSED"` and `"private": true` (npm) |
+| Built on commercial third-party code (a purchased boilerplate or theme) | **neither master**: a notice naming the vendor and pointing at the purchase terms, as `laranail/tenancy-boilerplate` does | whatever the vendor's terms allow; never `MIT` |
 
 Private and proprietary are separate facts. A private repository can still be MIT, and a repository that ships code under a licence forbidding redistribution, such as Untitled UI PRO, is proprietary for that reason alone. Pick by what the code is allowed to do, then set the visibility to match.
 
@@ -19,10 +20,17 @@ Private and proprietary are separate facts. A private repository can still be MI
 
 Nothing is appended to an MIT `LICENSE`. Licence detection compares the whole file against the MIT text, and an extra section can push it below the match threshold, which shows the repository as "Other" on GitHub and Packagist. Facts that an MIT repository needs to state go elsewhere:
 
-- Third-party artwork and its required attribution go in `ATTRIBUTION.md`, linked from the README.
+- Third-party artwork and code, their required attribution and any narrative about what the
+  repository derives from go in `attribution.md` (lowercase: the commit hook rejects upper-case
+  Markdown names other than the GitHub-recognised ones), linked from the README and not
+  `export-ignore`d. The upstream copyright lines themselves stay in `LICENSE`, one per line under
+  Simtabi's, which licence detection accepts.
 - The contributor terms go in `CONTRIBUTING.md`.
 
 The copyright line carries no year, matching ichava, where every repository uses `Copyright (c) Simtabi LLC`. The `Copyright (c) 2026 Simtabi LLC` line already in laranail and simtabi is equally valid and is not to be churned.
+
+A private repository that declares `MIT` only because a framework skeleton did (`laravel/laravel`'s
+`composer.json` says MIT) has not chosen a licence. Ask the owner before writing one.
 
 ## Tokens in the proprietary master
 

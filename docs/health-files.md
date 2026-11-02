@@ -89,6 +89,20 @@ GitHub private vulnerability reporting is per repository and off by default. Ena
 4. Point the account scaffolder at the renderer, since block defaults are beyond a `sed` substitution.
 5. Replace per-repository `CODE_OF_CONDUCT.md` copies with the 3-line pointer, repository by repository. Leave `SECURITY.md` and `CONTRIBUTING.md` copies where they carry their own prose.
 
+Step 5 was finished on 2026-11-02 across the simtabi and laranail packages, together with the private-repository wording in `SECURITY.md` and the licences GitHub could not detect.
+
+## Checking every repository
+
+`bin/repo-health.py`, in the same private tooling, checks each package repository's own files against these templates, at its default branch:
+
+| Rule | Fails when |
+|---|---|
+| Conduct | a `CODE_OF_CONDUCT.md` is anything but the pointer from `CODE_OF_CONDUCT.repo.md.tmpl` |
+| Licence | a repository has no `LICENSE`, or a public MIT one is not detected as MIT |
+| Channel | a private repository's `SECURITY.md` offers GitHub private vulnerability reporting, which GitHub provides on public repositories only |
+
+It exits 2 when it inspected fewer repositories than its floor, and fails an exemption that no longer applies, so neither a broken listing nor a stale exemption reads as clean.
+
 
 ## One security inbox, and how to find it
 
