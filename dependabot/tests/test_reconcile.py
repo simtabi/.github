@@ -12,6 +12,9 @@ import reconcile  # noqa: E402
 
 POLICY = common.load_policy()
 RENDERED = "# managed\nversion: 2\nupdates: []\n"
+# What a drifting repository actually has on disk: a dependabot.yml that covers every
+# ecosystem and is simply wrong. `check --write` has nothing to create or append for it.
+DRIFTED = "version: 2\nupdates: []  # hand written\n"
 
 
 def repo(name, **kw):
@@ -47,7 +50,17 @@ class FakeShell:
     def run(self, cmd, check=True, input_text=None):
         self.cmds.append(cmd)
         if "clone" in cmd:
-            os.makedirs(cmd[-1])
+            dest = cmd[-1]
+            os.makedirs(dest)
+            # A repository the generator calls drifting has a file already; one it calls
+            # exit-2 has nothing to inspect. Cloning into an empty directory made every
+            # repository look like a first-time write, which is why `check --write` looked
+            # as if it fixed things.
+            name = os.path.basename(dest).split("__", 1)[1]
+            if self.generator_rc.get(name) == 1:
+                os.makedirs(os.path.join(dest, ".github"), exist_ok=True)
+                with open(os.path.join(dest, ".github", "dependabot.yml"), "w") as fh:
+                    fh.write(DRIFTED)
             return subprocess.CompletedProcess(cmd, 0, "", "")
         if "check" in cmd:
             if "--strict" in cmd and "--write" in cmd:
@@ -56,13 +69,35 @@ class FakeShell:
             dest = cmd[cmd.index("check") + 1]
             name = os.path.basename(dest).split("__", 1)[1]
             if "--write" in cmd:
-                os.makedirs(os.path.join(dest, ".github"), exist_ok=True)
-                with open(os.path.join(dest, ".github", "dependabot.yml"), "w") as fh:
-                    fh.write(RENDERED)
+                # `check --write` creates the file, or appends an ecosystem the file is
+                # missing. It does not rewrite one that is merely wrong -- which is exactly
+                # what a drifting repository has. This fake used to write unconditionally,
+                # so it was more capable than the generator and hid the reconciler never
+                # fixing anything: every repository came back
+                # "skipped:write-made-no-change" in the real run.
+                target = os.path.join(dest, ".github", "dependabot.yml")
+                if not os.path.exists(target):
+                    os.makedirs(os.path.dirname(target), exist_ok=True)
+                    with open(target, "w") as fh:
+                        fh.write(RENDERED)
             return subprocess.CompletedProcess(cmd, self.generator_rc[name], "", "")
+        if "render" in cmd:
+            # `render --write` replaces everything outside the local block, which is what
+            # bringing a drifting file to the standard needs.
+            dest = cmd[cmd.index("render") + 1]
+            if "--write" in cmd:
+                target = os.path.join(dest, ".github", "dependabot.yml")
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                with open(target, "w") as fh:
+                    fh.write(RENDERED)
+            return subprocess.CompletedProcess(cmd, 0, RENDERED, "")
         if "status" in cmd:
             dest = cmd[2]
-            dirty = os.path.exists(os.path.join(dest, ".github", "dependabot.yml"))
+            target = os.path.join(dest, ".github", "dependabot.yml")
+            # Dirty means the working tree differs from what was cloned, not merely that a
+            # file exists: with a drifting file present from the clone, existence proves
+            # nothing.
+            dirty = os.path.exists(target) and open(target).read() != DRIFTED
             return subprocess.CompletedProcess(cmd, 0, "?? .github/dependabot.yml\0" if dirty else "", "")
         return subprocess.CompletedProcess(cmd, 0, "", "")
 
@@ -172,6 +207,18 @@ class PlanTest(unittest.TestCase):
         writes = [c for c in shell.cmds if "--write" in c]
         self.assertTrue(writes, "drifting repositories are written")
         self.assertFalse([c for c in writes if "--strict" in c])
+
+    def test_the_rewrite_uses_render_not_check(self):
+        # `check --write` creates or appends; it does not rewrite a file that is merely
+        # wrong, which is what drift is. Measured 2026-11-02: every repository sampled came
+        # back "skipped:write-made-no-change", so the reconciler had never proposed anything.
+        code, _, shell = self.run_main(self.base_routes(), self.RC, "--apply")
+        self.assertEqual(code, 0)
+        writes = [c for c in shell.cmds if "--write" in c]
+        self.assertTrue(writes, "drifting repositories are written")
+        for cmd in writes:
+            self.assertIn("render", cmd)
+            self.assertNotIn("check", cmd)
 
     def test_a_failed_write_fails_the_run(self):
         class WriteFails(FakeShell):
