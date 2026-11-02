@@ -263,6 +263,22 @@ class PlanTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(len([r for r in gh.runs if r[1] == "create"]), 3)
 
+    def test_the_budget_does_not_mislabel_a_repository_it_never_reached(self):
+        # The budget was first spent before the work, so a conforming repository came back
+        # `deferred` without anyone having looked at it -- laranail read 63 deferred where
+        # only 64 of 77 drift. Only a NEW pull request may spend it.
+        routes = self.base_routes()
+        routes["orgs/simtabi/repos"] = [repo("d1"), repo("d2"), repo("conforming")]
+        captured = []
+        orig = common.write_summary
+        common.write_summary = captured.append
+        try:
+            self.run_main(routes, {"d1": 1, "d2": 1, "conforming": 0}, "--apply", "--max-new", "1")
+        finally:
+            common.write_summary = orig
+        self.assertRegex(captured[0], r"\| simtabi/conforming \| conforms \|")
+        self.assertEqual(captured[0].count("deferred:rate-limit"), 1)
+
     def test_the_rewrite_uses_render_not_check(self):
         # `check --write` creates or appends; it does not rewrite a file that is merely
         # wrong, which is what drift is. Measured 2026-11-02: every repository sampled came
