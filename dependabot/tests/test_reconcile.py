@@ -49,7 +49,10 @@ class FakeShell:
         if "clone" in cmd:
             os.makedirs(cmd[-1])
             return subprocess.CompletedProcess(cmd, 0, "", "")
-        if "check" in cmd and "--strict" in cmd:
+        if "check" in cmd:
+            if "--strict" in cmd and "--write" in cmd:
+                # the real generator: "--strict goes with `check`, without --write"
+                return subprocess.CompletedProcess(cmd, 2, "", "")
             dest = cmd[cmd.index("check") + 1]
             name = os.path.basename(dest).split("__", 1)[1]
             if "--write" in cmd:
@@ -160,6 +163,33 @@ class PlanTest(unittest.TestCase):
         self.assertEqual(verbs, ["create", "edit"])
         create = next(r for r in gh.runs if r[1] == "create")
         self.assertIn("Adopt the Dependabot standard", create)
+
+    def test_write_never_carries_strict(self):
+        # The generator refuses `--strict` beside `--write` (exit 2); on 2026-11-02 that made every
+        # repository "skipped:write-exit-2" while the run still reported success.
+        code, _, shell = self.run_main(self.base_routes(), self.RC, "--apply")
+        self.assertEqual(code, 0)
+        writes = [c for c in shell.cmds if "--write" in c]
+        self.assertTrue(writes, "drifting repositories are written")
+        self.assertFalse([c for c in writes if "--strict" in c])
+
+    def test_a_failed_write_fails_the_run(self):
+        class WriteFails(FakeShell):
+            def run(self, cmd, check=True, input_text=None):
+                if "--write" in cmd:
+                    self.cmds.append(cmd)
+                    return subprocess.CompletedProcess(cmd, 3, "", "")
+                return super().run(cmd, check, input_text)
+        captured = []
+        orig = common.write_summary
+        common.write_summary = captured.append
+        try:
+            code = reconcile.main(["--owner", "simtabi", "--generator", self.gen],
+                                  gh=FakeGh(self.base_routes()), shell=WriteFails(self.RC))
+        finally:
+            common.write_summary = orig
+        self.assertEqual(code, 1)
+        self.assertRegex(captured[0], r"\| simtabi/drifting \| skipped:write-exit-3 \|")
 
     def test_error_in_one_repo_is_reported_and_exits_nonzero(self):
         routes = self.base_routes()
