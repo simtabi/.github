@@ -133,7 +133,10 @@ def reconcile_repo(repo, owner, gh, shell, opts, policy, workdir):
     if rc != 1:
         return f"skipped:generator-exit-{rc}", "the generator could not render this file safely"
 
-    rc = shell.run(gen + ["--write"], check=False).returncode
+    # `--strict` is check-only: the generator refuses it beside `--write` with exit 2, which
+    # silently skipped every repository from the day agent-kit started enforcing that.
+    write = [sys.executable, opts.generator_script, "check", dest, "--write", "--policy", opts.policy]
+    rc = shell.run(write, check=False).returncode
     if rc not in (0, 1):
         return f"skipped:write-exit-{rc}", ""
     changed = changed_paths(shell, dest)
@@ -209,6 +212,8 @@ def main(argv=None, gh=None, shell=None):
             except Exception as exc:  # one repository's failure must not stop the others
                 errors += 1
                 status, note = "error", str(exc)[:300]
+            if status.startswith("skipped:write-exit-"):
+                errors += 1  # the generator failed to write: a tool error, not a decision to skip
             rows.append((repo["full_name"], status, note))
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
