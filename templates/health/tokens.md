@@ -57,14 +57,18 @@ They use their own inboxes.
 
 | Master | Tokens | Notes |
 |---|---|---|
-| `SECURITY.md.tmpl` | `{{SUBJECT}}`, `{{SCOPE}}`, `{{EXTRA}}`; block `CHANNEL_EXTRA` | `{{SUBJECT}}` completes "Simtabi LLC maintains …" and names the account with a link; `{{SCOPE}}` is `in this organization` or `on this account`; `{{EXTRA}}` closes the Scope section and `CHANNEL_EXTRA` follows the private-reporting paragraph, each starting with a blank line when set. Paragraphs are one line each, unwrapped. The fixed text carries the 5 / 15 / 30 business-day targets, 90-day coordinated disclosure, safe harbor and no bounty; it is not legal advice, so have it read before changing those sections |
-| `SUPPORT.md.tmpl` | `{{DOCS_EXTRA}}`; blocks `HELP`, `DOCS`, `EXCEPTION_JOIN` | an account with its own support prose replaces the whole `HELP` block |
-| `CONTRIBUTING.md.tmpl` | `{{ORG_LABEL}}` | only the heading varies; an account with its own guide is `"keep"` |
-| `CODE_OF_CONDUCT.md` | none | Contributor Covenant 2.1, enforcement `opensource@simtabi.com` |
+| `SECURITY.md.tmpl` | `{{SUBJECT}}`, `{{SCOPE}}`, `{{EXTRA}}`; blocks `CHANNEL_EXTRA`, `COMMUNITY_EMAIL` | `{{SUBJECT}}` completes "Simtabi LLC maintains …" and names the account with a link; `{{SCOPE}}` is `in this organization` or `on this account`; `{{EXTRA}}` closes the Scope section and `CHANNEL_EXTRA` follows the private-reporting paragraph, each starting with a blank line when set. Paragraphs are one line each, unwrapped. The fixed text carries the 5 / 15 / 30 business-day targets, 90-day coordinated disclosure, safe harbor and no bounty; it is not legal advice, so have it read before changing those sections |
+| `SUPPORT.md.tmpl` | `{{DOCS_EXTRA}}`; blocks `HELP`, `DOCS`, `EXCEPTION_JOIN`, `COMMUNITY_EMAIL` | an account with its own support prose replaces the whole `HELP` block |
+| `CONTRIBUTING.md.tmpl` | `{{ORG_LABEL}}`; block `COMMUNITY_EMAIL` | only the heading varies; an account with its own guide is `"keep"` |
+| `CODE_OF_CONDUCT.md` | block `COMMUNITY_EMAIL` | Contributor Covenant 2.1, enforcement at the community address |
 | `ISSUE_TEMPLATE/bug_report.yml.tmpl` | blocks `ENV_LABEL`, `ENV_PLACEHOLDER` | the environment field; laranail asks for the PHP / Laravel version |
 | `ISSUE_TEMPLATE/feature_request.yml.tmpl` | none | |
-| `ISSUE_TEMPLATE/config.yml.tmpl` | `{{ORG}}` | links the account's security policy page and its `SUPPORT.md`. Never Discussions: it is enabled on some repositories only, and an org default cannot tell which |
+| `ISSUE_TEMPLATE/config.yml.tmpl` | `{{ORG}}`; block `COMMUNITY_EMAIL` | links the account's security policy page and its `SUPPORT.md`. Never Discussions: it is enabled on some repositories only, and an org default cannot tell which |
 | `PULL_REQUEST_TEMPLATE.md.tmpl` | none | |
+
+`COMMUNITY_EMAIL` is the account's community and contact inbox, defaulting to `opensource@simtabi.com`.
+ichava sets `ichava@simtabi.com` (Sim, 2026-11-03). Disclosure is `security@simtabi.com` for every
+account and is not a token.
 
 `{{#NAME}}default{{/NAME}}` is a block with a default: the master's text unless the account sets
 `NAME`. In `orgs.json`, `"keep"` means the account's own file is the source and is never rendered;

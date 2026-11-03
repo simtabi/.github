@@ -75,18 +75,23 @@
         "SUBJECT": "the open-source projects in the [ichava](https://github.com/ichava) organization",
         "SCOPE": "in this organization",
         "CHANNEL_EXTRA": "\n\nEvery public, non-archived repository in this organization has private vulnerability reporting switched on, so the button is available on all of them.",
-        "EXTRA": "\n\nEvery package is pre-1.0. Report anything you find regardless; pre-1.0 is not a reason to stay quiet."
+        "EXTRA": "\n\nEvery package is pre-1.0. Report anything you find regardless; pre-1.0 is not a reason to stay quiet.",
+        "COMMUNITY_EMAIL": "ichava@simtabi.com"
       },
       "support": {
         "DOCS": "each package's own `docs/` tree",
-        "DOCS_EXTRA": ", starting with\n   [core's installation guide](https://github.com/ichava/core/blob/main/docs/installation.md).\n   Plain markdown, browseable on GitHub"
+        "DOCS_EXTRA": ", starting with\n   [core's installation guide](https://github.com/ichava/core/blob/main/docs/installation.md).\n   Plain markdown, browseable on GitHub",
+        "COMMUNITY_EMAIL": "ichava@simtabi.com"
       },
-      "code_of_conduct": {},
+      "code_of_conduct": {
+        "COMMUNITY_EMAIL": "ichava@simtabi.com"
+      },
       "contributing": "keep",
       "issue_bug": {},
       "issue_feature": {},
       "issue_config": {
-        "ORG": "ichava"
+        "ORG": "ichava",
+        "COMMUNITY_EMAIL": "ichava@simtabi.com"
       },
       "pull_request": {}
     },
