@@ -7,7 +7,8 @@ held to two apps — `simbi-github-cli` for local `gh` and `git`, and this one f
 decided by measurement rather than by which app was newer:
 
 ```
-refresh-bot   contents=write metadata=read pull_requests=write        (3)
+refresh-bot   checks=read contents=write metadata=read
+              pull_requests=write statuses=read                      (5, was 3)
 simtabi-bot   + checks, issues, statuses, workflows=write             (7)
 ```
 
@@ -51,7 +52,7 @@ On GitHub Free a **private** repository cannot read organisation secrets and nee
 
 | Job | Owners | Permissions | Repositories |
 |---|---|---|---|
-| `dependabot-merge` | `*` | contents, pull requests (write) | all |
+| `dependabot-merge` | `*` | contents, pull requests (write); checks, statuses (read) | all |
 | `dependabot-reconcile` | `*` | contents, pull requests (write) | all |
 | `agent-kit-read` | `simtabi` | contents (read) | `agent-kit` |
 | `release-pr` | `*` | contents, pull requests (write) | all |
@@ -60,12 +61,13 @@ On GitHub Free a **private** repository cannot read organisation secrets and nee
 | `consumer-read` | `ichava` | contents (read) | `icon-browser`, `ichava.com` |
 | `package-repo-push` | `simtabi` | contents, pull requests (write) | `homebrew-tap`, `scoop-bucket` |
 
-> **`dependabot-merge` is inoperative, and that is a permission rather than a bug.** `merge.py` reads
-> `commits/{sha}/check-runs` and `/status`, which need `checks: read` and `statuses: read`; `refresh-bot`
-> holds neither, so `decide()` sees no checks and refuses every pull request — fail-closed. Granting the app
-> those two read permissions is the owner's step, and each org then approves them once. It also has no
-> `workflows: write` by design, so a pull request touching `.github/workflows/` can never be merged by this
-> token: leave those to `@dependabot merge`, which Dependabot performs with its own credentials.
+> **`dependabot-merge` can read checks since 2026-11-03.** `merge.py` reads `commits/{sha}/check-runs` and
+> `/status`; `refresh-bot` was granted `checks: read` and `statuses: read` that day and all 10 orgs approved
+> them, so the ceiling moved with the app rather than ahead of it. It still has **no `workflows: write`**, by
+> design: this app's key is organisation-level, and that permission within reach of every workflow in the
+> estate would let a release job rewrite the CI that gates it. So a pull request touching `.github/workflows/`
+> is never merged by this token — leave those to `@dependabot merge`, which Dependabot performs with its own
+> credentials. The gate is still dry-run until `DEPENDABOT_MERGE_APPLY` is set; it has never merged anything.
 
 `ceiling` is the app's own permission set and must match the manifest in `github-apps`. A job that needs a
 new permission adds it to the manifest, the ceiling and the job in the same change, and each org approves the

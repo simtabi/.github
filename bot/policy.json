@@ -3,13 +3,15 @@
     "about": "Which refresh-bot token each job may mint. A job not named here gets no token. Owners '*' means every org in dependabot/policy.json accounts.orgs; client accounts are refused whatever is written here. The app is refresh-bot (5110899) since 2026-11-03, when simtabi-bot was retired to keep the estate to two apps; this file and the bot-token action are app-agnostic, so only the credentials the workflows pass changed.",
     "ceiling": {
         "contents": "write",
-        "pull-requests": "write"
+        "pull-requests": "write",
+        "checks": "read",
+        "statuses": "read"
     },
     "jobs": {
         "dependabot-merge": {
-            "why": "Merge a policy-allowed Dependabot pull request once every check on its head is green. INOPERATIVE until refresh-bot is granted checks:read and statuses:read -- merge.py reads repos/{repo}/commits/{sha}/check-runs and /status, and neither is readable with the two permissions below, so decide() sees no checks and refuses every pull request. That is fail-closed, not silent. It also has no workflows:write, so a pull request touching .github/workflows/ can never be merged by this token: leave those to '@dependabot merge', which Dependabot performs with its own credentials.",
+            "why": "Merge a policy-allowed Dependabot pull request once every check on its head is green. checks and statuses are read because merge.py reads repos/{repo}/commits/{sha}/check-runs and /status; without them decide() sees no checks and refuses every pull request, which is fail-closed but useless. No workflows:write, deliberately: this app's key is organisation-level, and a workflows:write credential within reach of every workflow in the estate would let a release job rewrite the CI that gates it. So a pull request touching .github/workflows/ is never merged by this token -- leave those to '@dependabot merge', which Dependabot performs with its own credentials.",
             "owners": "*",
-            "permissions": {"contents": "write", "pull-requests": "write"}
+            "permissions": {"contents": "write", "pull-requests": "write", "checks": "read", "statuses": "read"}
         },
         "dependabot-reconcile": {
             "why": "Push chore/dependabot-standard and open or refresh its pull request. dependabot.yml is not under .github/workflows/, so no workflows permission.",
