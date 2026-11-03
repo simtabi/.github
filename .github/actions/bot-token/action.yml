@@ -1,6 +1,6 @@
-name: simtabi-bot token
+name: CI bot token
 description: >
-  Mint a simtabi-bot installation token narrowed to what bot/policy.json grants the named job on one owner.
+  Mint a refresh-bot installation token narrowed to what bot/policy.json grants the named job on one owner.
   Refuses a job or owner the policy does not allow. Needs this repository checked out at the workspace root.
 
 inputs:
@@ -11,10 +11,10 @@ inputs:
     description: Org the token acts on
     required: true
   client-id:
-    description: simtabi-bot client ID
+    description: refresh-bot client ID (vars.REFRESH_APP_CLIENT_ID)
     required: true
   private-key:
-    description: simtabi-bot private key
+    description: refresh-bot private key (secrets.REFRESH_APP_PRIVATE_KEY)
     required: true
 
 outputs:
@@ -45,7 +45,3 @@ runs:
         repositories: ${{ steps.grant.outputs.repositories }}
         permission-contents: ${{ steps.grant.outputs.permission-contents }}
         permission-pull-requests: ${{ steps.grant.outputs.permission-pull-requests }}
-        permission-issues: ${{ steps.grant.outputs.permission-issues }}
-        permission-workflows: ${{ steps.grant.outputs.permission-workflows }}
-        permission-checks: ${{ steps.grant.outputs.permission-checks }}
-        permission-statuses: ${{ steps.grant.outputs.permission-statuses }}

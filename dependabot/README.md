@@ -13,7 +13,7 @@ Both tools are dry runs unless told otherwise, and neither ever pushes to a defa
 | `merge.py` | For one account, finds open pull requests by `dependabot[bot]`, decides each with the pure function `decide()`, and with `--apply` merges eligible ones with `gh pr merge --squash --match-head-commit <sha>`. |
 | `common.py` | Policy loading and validation, the `gh` wrapper, repository listing and the active filter, summary output. |
 | `.github/workflows/dependabot-reconcile.yml` | Monday 14:00 UTC (after Dependabot's own 06:00 America/New_York run) and on demand, one job per org. |
-| `.github/workflows/dependabot-merge.yml` | Weekly, Tuesday 14:17 UTC, and on demand, one org at a time, never two runs at once. Skips with a notice while `simtabi-bot`'s credentials are not configured. |
+| `.github/workflows/dependabot-merge.yml` | Weekly, Tuesday 14:17 UTC, and on demand, one org at a time, never two runs at once. Skips with a notice while `refresh-bot`'s credentials are not configured. |
 | `.github/workflows/ci.yml` | Unit tests and actionlint on every pull request to this repository. |
 
 Every run prints a table and appends it to the job summary: for the reconciler `repo · status · note`, for the merge gate `repo · PR · action · reason`.
@@ -23,7 +23,7 @@ Every run prints a table and appends it to the job summary: for the reconciler `
 | Key | Value | Meaning |
 |---|---|---|
 | `version` | `1` | Named in the header of every generated file. Bump it when the rendered shape changes. |
-| `accounts.orgs` | 10 owned orgs | Reconciled and merge-gated by the workflows, with a `simtabi-bot` token per org. |
+| `accounts.orgs` | 10 owned orgs | Reconciled and merge-gated by the workflows, with a `refresh-bot` token per org. |
 | `accounts.users` | `imanimanyara` | Not covered by the GitHub App; run locally (below). |
 | `exclude` | `[{"repo": "owner/name", "reason": "..."}]` | Repositories neither script touches. A reason is required. |
 | `schedule` | weekly, Monday 06:00, America/New_York | The documented convention. |
@@ -70,17 +70,18 @@ To keep a repository-specific Dependabot entry (an extra directory, an `ignore`,
 
 ## Credentials
 
-Both workflows run as `simtabi-bot`, through `.github/actions/bot-token`, with the permissions
+Both workflows run as `refresh-bot`, through `.github/actions/bot-token`, with the permissions
 [`bot/policy.json`](../bot/README.md) grants each job:
 
 | Workflow | Policy job | Permissions |
 |---|---|---|
 | reconcile | `dependabot-reconcile`, plus `agent-kit-read` for the generator | contents, pull requests (write); `agent-kit` contents (read) |
-| merge | `dependabot-merge` | contents, pull requests, workflows (write); checks, statuses (read) |
+| merge | `dependabot-merge` | contents, pull requests (write) |
 
-The key is a secret in this repository's `simtabi-bot` environment, deployable from `main` only. Until the app
-exists, the merge gate skips with a notice and the reconciler keeps using Refresh Bot (`REFRESH_APP_*`). The
-Dependency Merge Bot this section used to describe was never created; its job is `simtabi-bot`'s.
+The credentials are `REFRESH_APP_CLIENT_ID` (variable) and `REFRESH_APP_PRIVATE_KEY` (secret),
+organisation-level on every owned org. The Dependency Merge Bot this section used to describe was never
+created, and `simtabi-bot` — which briefly held these two jobs — was retired on 2026-11-03 to keep the estate
+to two apps; `bot/README.md` has the measurement that decided which app survived.
 
 ## Going live
 
@@ -132,11 +133,13 @@ Both workflows ship as dry runs.
 > `GET /users/{login}` answers 200 for all three deleted orgs here, so it cannot be used for this —
 > `GET /orgs/{login}` and `GET /user/orgs` are the endpoints that tell the truth.
 
-**Prerequisite for the merge gate:** `simtabi-bot` created and installed on every org in `accounts.orgs`, with its client ID and key in the `simtabi-bot` environment. The gate needs **checks: read**, **statuses: read** and **workflows: write** (merging an Actions update changes `.github/workflows/`, which GitHub refuses an App without it); if an org has not approved those, the token step fails rather than the gate running half-blind. While `SIMTABI_BOT_CLIENT_ID` or `SIMTABI_BOT_PRIVATE_KEY` is not set at all, the gate posts a notice and skips its merge jobs instead.
+**Prerequisite for the merge gate, and it is not met:** `refresh-bot` must hold **checks: read** and **statuses: read**, because `merge.py` reads `commits/{sha}/check-runs` and `/status`. It holds neither today, so `decide()` sees no checks and refuses every pull request — fail-closed, not silent. Granting those two read permissions on the app, and having each org approve them, is the owner's step; widen `bot/policy.json`'s `ceiling` only after that, or every run answers 422.
+
+The gate also has no **workflows: write**, deliberately: its key is organisation-level, and a `workflows: write` credential within reach of every workflow in the estate would let a release job rewrite the CI that gates it. So a Dependabot pull request that touches `.github/workflows/` — the `github-actions` ecosystem, roughly half the volume — is never merged by this token. Use `@dependabot merge` on those, which Dependabot performs with its own credentials.
 
 ## The personal account
 
-`simtabi-bot` is not installed on `imanimanyara`, so run both locally with the personal login, from this repository's root:
+`refresh-bot` is not installed on `imanimanyara`, so run both locally with the personal login, from this repository's root:
 
 ```bash
 GH_TOKEN=$(gh auth token) python3 dependabot/reconcile.py --owner imanimanyara \

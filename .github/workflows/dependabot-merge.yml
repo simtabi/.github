@@ -7,10 +7,16 @@ name: Dependabot merge gate
 # Dry run unless `apply` is ticked on a manual run, or, for scheduled runs, the repository
 # variable DEPENDABOT_MERGE_APPLY is 'true'. Going live is that variable, not a code change.
 #
-# Runs as simtabi-bot, job `dependabot-merge` in bot/policy.json. Until the app exists (variable
-# SIMTABI_BOT_CLIENT_ID and secret SIMTABI_BOT_PRIVATE_KEY in the `simtabi-bot` environment), every
-# run posts a notice and skips the merge jobs instead of failing one per org. Creating the app is the
-# owner's step: bot/README.md.
+# Runs as refresh-bot, job `dependabot-merge` in bot/policy.json. REFRESH_APP_CLIENT_ID (variable) and
+# REFRESH_APP_PRIVATE_KEY (secret) are organisation-level on every owned org; without both, the run
+# posts a notice and skips instead of failing once per org.
+#
+# This gate cannot merge anything yet, and the reason is a permission rather than a bug: merge.py reads
+# commits/{sha}/check-runs and /status, which need checks:read and statuses:read, and refresh-bot holds
+# neither. decide() therefore sees no checks and refuses every pull request -- fail-closed. Granting the
+# app those two read permissions is the owner's step (bot/README.md). refresh-bot also has no
+# workflows:write by design, so a pull request touching .github/workflows/ can never be merged by this
+# token; leave those to `@dependabot merge`, which Dependabot performs with its own credentials.
 
 on:
   schedule:
@@ -38,7 +44,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # The bot's key is an environment secret, deployable from main only.
-    environment: simtabi-bot
     permissions:
       contents: read
     outputs:
@@ -49,17 +54,17 @@ jobs:
       - name: Check the bot credentials are configured
         id: credentials
         env:
-          HAS_CLIENT_ID: ${{ vars.SIMTABI_BOT_CLIENT_ID != '' }}
-          HAS_PRIVATE_KEY: ${{ secrets.SIMTABI_BOT_PRIVATE_KEY != '' }}
+          HAS_CLIENT_ID: ${{ vars.REFRESH_APP_CLIENT_ID != '' }}
+          HAS_PRIVATE_KEY: ${{ secrets.REFRESH_APP_PRIVATE_KEY != '' }}
         run: |
           if [ "$HAS_CLIENT_ID" = "true" ] && [ "$HAS_PRIVATE_KEY" = "true" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           missing=()
-          [ "$HAS_CLIENT_ID" = "true" ] || missing+=("variable SIMTABI_BOT_CLIENT_ID")
-          [ "$HAS_PRIVATE_KEY" = "true" ] || missing+=("secret SIMTABI_BOT_PRIVATE_KEY")
-          msg="Merge gate skipped: ${missing[*]} not configured in the simtabi-bot environment. See bot/README.md."
+          [ "$HAS_CLIENT_ID" = "true" ] || missing+=("variable REFRESH_APP_CLIENT_ID")
+          [ "$HAS_PRIVATE_KEY" = "true" ] || missing+=("secret REFRESH_APP_PRIVATE_KEY")
+          msg="Merge gate skipped: ${missing[*]} not set. Both are organisation-level on every owned org. See bot/README.md."
           echo "::notice title=Dependabot merge gate::$msg"
           echo "$msg" >> "$GITHUB_STEP_SUMMARY"
           echo "ready=false" >> "$GITHUB_OUTPUT"
@@ -79,7 +84,6 @@ jobs:
     if: ${{ needs.accounts.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    environment: simtabi-bot
     permissions:
       contents: read
     strategy:
@@ -101,8 +105,8 @@ jobs:
         with:
           job: dependabot-merge
           owner: ${{ matrix.org }}
-          client-id: ${{ vars.SIMTABI_BOT_CLIENT_ID }}
-          private-key: ${{ secrets.SIMTABI_BOT_PRIVATE_KEY }}
+          client-id: ${{ vars.REFRESH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
 
       - name: Merge gate for ${{ matrix.org }}
         env:

@@ -31,37 +31,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # Reads only whether each credential is set, never a value; needs the environment to see them at all.
-    environment: simtabi-bot
     permissions:
       contents: read
     outputs:
       orgs: ${{ steps.list.outputs.orgs }}
       ready: ${{ steps.credentials.outputs.ready }}
     steps:
-      # The pair is chosen on SIMTABI_BOT_CLIENT_ID alone, below and in every token step, so a client ID
-      # is never sent with the other app's key. That makes a half-configured bot the one real hazard:
-      # without this check it is twelve create-github-app-token failures instead of one notice.
-      - name: Check which bot credentials are configured
+      # Both halves are checked together, so a client ID is never sent without its key: without this
+      # it is twelve create-github-app-token failures instead of one notice. Only whether each is set
+      # reaches this step, never the key itself.
+      - name: Check the bot credentials are configured
         id: credentials
         env:
-          HAS_BOT_ID: ${{ vars.SIMTABI_BOT_CLIENT_ID != '' }}
-          HAS_BOT_KEY: ${{ secrets.SIMTABI_BOT_PRIVATE_KEY != '' }}
-          HAS_REFRESH_ID: ${{ vars.REFRESH_APP_CLIENT_ID != '' }}
-          HAS_REFRESH_KEY: ${{ secrets.REFRESH_APP_PRIVATE_KEY != '' }}
+          HAS_CLIENT_ID: ${{ vars.REFRESH_APP_CLIENT_ID != '' }}
+          HAS_PRIVATE_KEY: ${{ secrets.REFRESH_APP_PRIVATE_KEY != '' }}
         run: |
-          if [ "$HAS_BOT_ID" = "true" ]; then
-            if [ "$HAS_BOT_KEY" = "true" ]; then
-              msg="Running as simtabi-bot."
-              ready=true
-            else
-              msg="Reconcile skipped: variable SIMTABI_BOT_CLIENT_ID is set but secret SIMTABI_BOT_PRIVATE_KEY is not, so every org would fail to mint. Set the key, or unset the variable to fall back to Refresh Bot. See bot/README.md."
-              ready=false
-            fi
-          elif [ "$HAS_REFRESH_ID" = "true" ] && [ "$HAS_REFRESH_KEY" = "true" ]; then
-            msg="Running as Refresh Bot (deprecated): SIMTABI_BOT_CLIENT_ID is not set yet. See bot/README.md."
+          if [ "$HAS_CLIENT_ID" = "true" ] && [ "$HAS_PRIVATE_KEY" = "true" ]; then
+            msg="Running as refresh-bot."
             ready=true
           else
-            msg="Reconcile skipped: neither the simtabi-bot nor the Refresh Bot credential pair is complete in the simtabi-bot environment. See bot/README.md."
+            missing=()
+            [ "$HAS_CLIENT_ID" = "true" ] || missing+=("variable REFRESH_APP_CLIENT_ID")
+            [ "$HAS_PRIVATE_KEY" = "true" ] || missing+=("secret REFRESH_APP_PRIVATE_KEY")
+            msg="Reconcile skipped: ${missing[*]} not set. Both are organisation-level on every owned org. See bot/README.md."
             ready=false
           fi
           echo "ready=$ready" >> "$GITHUB_OUTPUT"
@@ -83,11 +75,8 @@ jobs:
     if: ${{ needs.accounts.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    environment: simtabi-bot
-    # simtabi-bot once its client ID is in the environment, Refresh Bot until then. The pair is chosen on
-    # one condition, so a client ID is never sent with the other app's key.
     env:
-      BOT_CLIENT_ID: ${{ vars.SIMTABI_BOT_CLIENT_ID != '' && vars.SIMTABI_BOT_CLIENT_ID || vars.REFRESH_APP_CLIENT_ID }}
+      BOT_CLIENT_ID: ${{ vars.REFRESH_APP_CLIENT_ID }}
     permissions:
       contents: read
     strategy:
@@ -109,7 +98,7 @@ jobs:
           job: agent-kit-read
           owner: simtabi
           client-id: ${{ env.BOT_CLIENT_ID }}
-          private-key: ${{ vars.SIMTABI_BOT_CLIENT_ID != '' && secrets.SIMTABI_BOT_PRIVATE_KEY || secrets.REFRESH_APP_PRIVATE_KEY }}
+          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
       - uses: actions/checkout@v7
         with:
           repository: simtabi/agent-kit
@@ -127,7 +116,7 @@ jobs:
           job: dependabot-reconcile
           owner: ${{ matrix.org }}
           client-id: ${{ env.BOT_CLIENT_ID }}
-          private-key: ${{ vars.SIMTABI_BOT_CLIENT_ID != '' && secrets.SIMTABI_BOT_PRIVATE_KEY || secrets.REFRESH_APP_PRIVATE_KEY }}
+          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
 
       - name: Reconcile ${{ matrix.org }}
         env:

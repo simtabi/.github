@@ -1,15 +1,28 @@
-# simtabi-bot
+# The CI bot
 
-> Every Simtabi automation runs here, as one GitHub App, `simtabi-bot`, with a token narrowed per job by `policy.json`.
+> Every Simtabi CI automation runs as one GitHub App, `refresh-bot`, with a token narrowed per job by `policy.json`.
 
-The app is defined in `imanimanyara/github-apps` (`manifests/simtabi-bot.json`, `docs/simtabi-bot.md`). Its
-private key exists in one place: the `simtabi-bot` environment of this repository, deployable from `main`
-only. No other repository holds it, so no other repository's workflows can mint its tokens.
+**The app changed on 2026-11-03: `simtabi-bot` was retired and `refresh-bot` took its jobs.** The estate is
+held to two apps — `simbi-github-cli` for local `gh` and `git`, and this one for CI — and the direction was
+decided by measurement rather than by which app was newer:
+
+```
+refresh-bot   contents=write metadata=read pull_requests=write        (3)
+simtabi-bot   + checks, issues, statuses, workflows=write             (7)
+```
+
+`refresh-bot` is the **narrower** app, and 35 workflow files across the estate already used it against 2 for
+`simtabi-bot` — so it was both the safer and the cheaper survivor. Everything in this directory is
+app-agnostic: `policy.json`, `resolve.py` and the `bot-token` action take a client ID and a key as inputs, so
+only the credentials the workflows pass changed.
+
+Its key is an **organisation-level secret on every owned org**, which is the reach the 35 files need and the
+reason the ceiling below must stay exactly what the app holds. The app is defined in
+`imanimanyara/github-apps` (`manifests/refresh-bot.json`, `docs/refresh-bot.md`).
 
 ## How a job gets a token
 
 ```yaml
-environment: simtabi-bot
 steps:
   - uses: actions/checkout@v7
     with:
@@ -17,11 +30,13 @@ steps:
   - id: token
     uses: ./.github/actions/bot-token
     with:
-      job: dependabot-merge
+      job: release-pr
       owner: laranail
-      client-id: ${{ vars.SIMTABI_BOT_CLIENT_ID }}
-      private-key: ${{ secrets.SIMTABI_BOT_PRIVATE_KEY }}
+      client-id: ${{ vars.REFRESH_APP_CLIENT_ID }}
+      private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
 ```
+
+On GitHub Free a **private** repository cannot read organisation secrets and needs repository copies of both.
 
 `bot-token` runs `resolve.py`, which looks the job up in `policy.json` and either refuses or hands
 `actions/create-github-app-token` exactly that job's permissions and repositories. It refuses:
@@ -36,9 +51,21 @@ steps:
 
 | Job | Owners | Permissions | Repositories |
 |---|---|---|---|
-| `dependabot-merge` | `*` | contents, pull requests, workflows (write); checks, statuses (read) | all |
+| `dependabot-merge` | `*` | contents, pull requests (write) | all |
 | `dependabot-reconcile` | `*` | contents, pull requests (write) | all |
 | `agent-kit-read` | `simtabi` | contents (read) | `agent-kit` |
+| `release-pr` | `*` | contents, pull requests (write) | all |
+| `estate-read` | `*` | contents, pull requests (read) | all |
+| `private-dep-read` | `simtabi` | contents (read) | `sis-sdk`, `docsmith` |
+| `consumer-read` | `ichava` | contents (read) | `icon-browser`, `ichava.com` |
+| `package-repo-push` | `simtabi` | contents, pull requests (write) | `homebrew-tap`, `scoop-bucket` |
+
+> **`dependabot-merge` is inoperative, and that is a permission rather than a bug.** `merge.py` reads
+> `commits/{sha}/check-runs` and `/status`, which need `checks: read` and `statuses: read`; `refresh-bot`
+> holds neither, so `decide()` sees no checks and refuses every pull request — fail-closed. Granting the app
+> those two read permissions is the owner's step, and each org then approves them once. It also has no
+> `workflows: write` by design, so a pull request touching `.github/workflows/` can never be merged by this
+> token: leave those to `@dependabot merge`, which Dependabot performs with its own credentials.
 
 `ceiling` is the app's own permission set and must match the manifest in `github-apps`. A job that needs a
 new permission adds it to the manifest, the ceiling and the job in the same change, and each org approves the
@@ -49,7 +76,7 @@ does not need to: a ceiling that claims a permission the app does not hold makes
 `create-github-app-token` answer 422 and the job fails on its first run, and a manifest that holds more than
 the ceiling only means the extra is never requested. Both directions are loud or harmless, never a token
 wider than the policy. Check the live app against the manifest after any edit with
-`gh api apps/simtabi-bot --jq .permissions | bin/create-app --check-permissions manifests/simtabi-bot.json`.
+`gh api apps/refresh-bot --jq .permissions | bin/create-app --check-permissions manifests/refresh-bot.json`.
 
 `repositories` narrows a job to named repositories of its owner. It is validated at load time, because
 getting it wrong is silent: an empty list resolves to `""`, which the action reads as *every* repository of
@@ -60,25 +87,28 @@ would be sent to all twelve orgs.
 ## Adding a job
 
 1. Add it to `policy.json` with a `why`, its owners, its permissions and, where it can, its repositories.
-2. Call `bot-token` with that `job:` from a workflow in this repository, in a job with
-   `environment: simtabi-bot`.
+2. Call `bot-token` with that `job:` from a workflow, passing `vars.REFRESH_APP_CLIENT_ID` and
+   `secrets.REFRESH_APP_PRIVATE_KEY`.
 3. `python3 -m unittest discover -s bot/tests -v`. A workflow naming a job the policy lacks fails the tests,
    so a rename cannot wait for its schedule to find out.
+4. If the job needs a permission outside the ceiling, **the ceiling does not move on its own.** Grant it on
+   the app first, let every org approve it, then widen `ceiling` and `REFRESH_BOT_HELD` in the tests in one
+   change. A ceiling claiming a permission the app lacks makes every run 422.
 
-## Until the app exists
+## When a credential is missing
 
-Both workflows post a notice and skip their matrix job rather than failing once per org. The merge gate
-skips while `SIMTABI_BOT_CLIENT_ID` or `SIMTABI_BOT_PRIVATE_KEY` is missing. The reconciler uses Refresh
-Bot's `REFRESH_APP_*` until `SIMTABI_BOT_CLIENT_ID` is set, choosing both halves of the pair on that one
-condition so a client ID is never sent with the other app's key — which makes a *half*-configured bot the
-real hazard, and the one its readiness check is written against: a client ID with no key skips with a
-notice saying so, instead of twelve identical minting failures. Each run's summary names the app it ran as.
+Both workflows post a notice and skip their matrix job rather than failing once per org, and both halves of
+the pair are checked together so a client ID is never sent without its key: without that check it is ten
+`create-github-app-token` failures instead of one notice. Each run's summary names the app it ran as.
 
-**The first workflow run that names the environment creates it with no branch rule at all**, so every branch
-can deploy to it, and the key would sit where a workflow on any branch could read it. That is the state
-`simtabi-bot` was found in on 2026-10-28. The owner's setup (`github-apps` `docs/simtabi-bot.md`,
-"Creating it") restricts it to `main`, and `bin/create-app` now refuses to store a key in an environment
-that has no branch policy rather than checking only that the environment exists.
+**`REFRESH_APP_CLIENT_ID` and `REFRESH_APP_PRIVATE_KEY` are organisation-level on every owned org.** On
+GitHub Free a *private* repository cannot read organisation secrets and needs repository copies of both,
+which is why several private repositories carry their own.
+
+> **The retired app's key is still in this repository's `simtabi-bot` environment**, and deleting it is the
+> owner's step — see `github-apps` `docs/simtabi-bot.md`. Nothing reads it now: no workflow here names
+> `SIMTABI_BOT_*`, which `grep` over this repository confirms. A key nobody reads is still a key nobody
+> rotates, so remove the environment when the app is deleted rather than leaving it to age.
 
 ## Tests
 

@@ -1,4 +1,4 @@
-"""Turn a job name and an owner into the narrowed simtabi-bot token request, or refuse.
+"""Turn a job name and an owner into the narrowed refresh-bot token request, or refuse.
 
     python3 bot/resolve.py --job dependabot-merge --owner laranail >> "$GITHUB_OUTPUT"
 
