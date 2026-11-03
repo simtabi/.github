@@ -25,6 +25,34 @@
             "owners": ["simtabi"],
             "repositories": ["agent-kit"],
             "permissions": {"contents": "read"}
+        },
+        "release-pr": {
+            "why": "Push a bot branch and open or refresh its pull request: release-please, sync-upstream, rebuild-bundle, visual-baselines, tzdata-bump, refresh, refresh-pins. GITHUB_TOKEN cannot do this -- a pull request it opens starts no CI, so required checks never report. No workflows permission: these change source and manifests, never .github/workflows/.",
+            "owners": "*",
+            "permissions": {"contents": "write", "pull-requests": "write"}
+        },
+        "estate-read": {
+            "why": "Read an organisation's repositories to audit them: ichava's estate-check, laranail's audit-private-default-branches. Read-only, every repository of the owner, because the point is to find the ones nobody listed.",
+            "owners": "*",
+            "permissions": {"contents": "read", "pull-requests": "read"}
+        },
+        "private-dep-read": {
+            "why": "Clone a private dependency so a build can resolve it: laranail/sis-wrapper needs simtabi/sis-sdk, docsmith-scaffolder needs simtabi/docsmith. Named rather than open-ended, so a new private dependency is a policy change and not a silent widening.",
+            "owners": ["simtabi"],
+            "repositories": ["sis-sdk", "docsmith"],
+            "permissions": {"contents": "read"}
+        },
+        "consumer-read": {
+            "why": "Let react-icon-browser and react-landingpage check their consumers' VENDORED.json before releasing (check:consumers). Read-only on the two consumers, never on the whole org.",
+            "owners": ["ichava"],
+            "repositories": ["icon-browser", "ichava.com"],
+            "permissions": {"contents": "read"}
+        },
+        "package-repo-push": {
+            "why": "GoReleaser updating the Homebrew tap and the Scoop bucket from a release run (simtabi/osaat). Not minted when both deploy keys are set.",
+            "owners": ["simtabi"],
+            "repositories": ["homebrew-tap", "scoop-bucket"],
+            "permissions": {"contents": "write", "pull-requests": "write"}
         }
     }
 }
