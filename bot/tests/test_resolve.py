@@ -155,5 +155,69 @@ class ResolveTest(unittest.TestCase):
                               f"{name} mints a token without gating on a readiness check")
 
 
+class RefreshBotReplacementTest(unittest.TestCase):
+    """The jobs that take over Refresh Bot's work, and the one property that makes that safe.
+
+    Refresh Bot holds three permissions -- contents=write, pull_requests=write, metadata=read
+    (`gh api apps/refresh-bot --jq .permissions`, measured 2026-11-03). simtabi-bot holds seven,
+    `workflows=write` among them. So replacing one with the other is only a narrowing if each
+    replacement job asks for no more than Refresh Bot ever had, and nothing but a test keeps that
+    true once the jobs are reachable from an org-level credential.
+    """
+
+    REPLACEMENTS = ("release-pr", "estate-read", "private-dep-read", "consumer-read",
+                    "package-repo-push")
+    REFRESH_BOT_HELD = {"contents": "write", "pull-requests": "write"}
+
+    def test_the_replacement_jobs_are_all_present(self):
+        # A sweep over a name that no longer exists asserts nothing at all.
+        missing = [j for j in self.REPLACEMENTS if j not in POLICY["jobs"]]
+        self.assertEqual(missing, [], f"policy is missing {missing}")
+        self.assertGreaterEqual(len(self.REPLACEMENTS), 5)
+
+    def test_no_replacement_job_asks_for_more_than_refresh_bot_held(self):
+        for job in self.REPLACEMENTS:
+            with self.subTest(job=job):
+                for perm, level in POLICY["jobs"][job]["permissions"].items():
+                    self.assertIn(perm, self.REFRESH_BOT_HELD,
+                                  f"{job} wants {perm}, which Refresh Bot never had")
+                    self.assertLessEqual(resolve.RANK[level],
+                                         resolve.RANK[self.REFRESH_BOT_HELD[perm]],
+                                         f"{job} wants {perm}={level}, above Refresh Bot's")
+
+    def test_the_guard_above_can_fail(self):
+        # Prove it, rather than trusting a green run: workflows=write is inside simtabi-bot's
+        # ceiling, so the policy loads -- only this assertion stands between that and an
+        # org-reachable token that can rewrite CI.
+        p = copy.deepcopy(POLICY)
+        p["jobs"]["release-pr"]["permissions"]["workflows"] = "write"
+        resolve.load_policy(write_policy(p))  # loads fine; the ceiling allows it
+        self.assertNotIn("workflows", self.REFRESH_BOT_HELD)
+
+    def test_release_pr_cannot_touch_workflows(self):
+        # The one that matters: release-pr is owners "*", so it is reachable for every managed org.
+        out = resolve.resolve(POLICY, ORGS, "release-pr", "laranail")
+        self.assertEqual(out["permission-workflows"], "")
+        self.assertEqual(out["permission-contents"], "write")
+        self.assertEqual(out["permission-pull-requests"], "write")
+
+    def test_the_narrowed_jobs_refuse_an_owner_they_do_not_name(self):
+        for job, allowed in (("private-dep-read", "simtabi"), ("consumer-read", "ichava"),
+                             ("package-repo-push", "simtabi")):
+            with self.subTest(job=job):
+                resolve.resolve(POLICY, ORGS + ["ichava"], job, allowed)  # the positive control
+                with self.assertRaisesRegex(ValueError, "may not act on"):
+                    resolve.resolve(POLICY, ORGS + ["ichava", "tusente"], job, "tusente")
+
+    def test_the_read_only_jobs_cannot_write(self):
+        for job, owner in (("estate-read", "laranail"), ("private-dep-read", "simtabi"),
+                           ("consumer-read", "ichava")):
+            with self.subTest(job=job):
+                out = resolve.resolve(POLICY, ORGS + ["ichava"], job, owner)
+                for key, value in out.items():
+                    if key.startswith("permission-"):
+                        self.assertNotEqual(value, "write", f"{job} writes via {key}")
+
+
 if __name__ == "__main__":
     unittest.main()
