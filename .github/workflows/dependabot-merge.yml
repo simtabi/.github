@@ -45,7 +45,7 @@ jobs:
     name: accounts
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # The bot's key is an environment secret, deployable from main only.
+    # The bot's key is an organisation-level secret, readable by every repository in the org.
     permissions:
       contents: read
     outputs:
