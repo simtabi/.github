@@ -11,12 +11,14 @@ name: Dependabot merge gate
 # REFRESH_APP_PRIVATE_KEY (secret) are organisation-level on every owned org; without both, the run
 # posts a notice and skips instead of failing once per org.
 #
-# This gate cannot merge anything yet, and the reason is a permission rather than a bug: merge.py reads
-# commits/{sha}/check-runs and /status, which need checks:read and statuses:read, and refresh-bot holds
-# neither. decide() therefore sees no checks and refuses every pull request -- fail-closed. Granting the
-# app those two read permissions is the owner's step (bot/README.md). refresh-bot also has no
-# workflows:write by design, so a pull request touching .github/workflows/ can never be merged by this
-# token; leave those to `@dependabot merge`, which Dependabot performs with its own credentials.
+# merge.py reads commits/{sha}/check-runs and /status, so the job needs checks:read and statuses:read.
+# refresh-bot was granted both on 2026-11-03 and all 10 orgs approved them, so the ceiling moved with the
+# app rather than ahead of it; widening the ceiling first makes create-github-app-token answer 422.
+#
+# refresh-bot has no workflows:write, deliberately: its key is organisation-level, and that permission
+# within reach of every workflow in the estate would let a release job rewrite the CI that gates it. So a
+# pull request touching .github/workflows/ is never merged by this token; leave those to
+# `@dependabot merge`, which Dependabot performs with its own credentials.
 
 on:
   schedule:

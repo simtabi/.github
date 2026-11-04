@@ -45,3 +45,5 @@ runs:
         repositories: ${{ steps.grant.outputs.repositories }}
         permission-contents: ${{ steps.grant.outputs.permission-contents }}
         permission-pull-requests: ${{ steps.grant.outputs.permission-pull-requests }}
+        permission-checks: ${{ steps.grant.outputs.permission-checks }}
+        permission-statuses: ${{ steps.grant.outputs.permission-statuses }}

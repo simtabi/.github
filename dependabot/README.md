@@ -76,7 +76,7 @@ Both workflows run as `refresh-bot`, through `.github/actions/bot-token`, with t
 | Workflow | Policy job | Permissions |
 |---|---|---|
 | reconcile | `dependabot-reconcile`, plus `agent-kit-read` for the generator | contents, pull requests (write); `agent-kit` contents (read) |
-| merge | `dependabot-merge` | contents, pull requests (write) |
+| merge | `dependabot-merge` | contents, pull requests (write); checks, statuses (read) |
 
 The credentials are `REFRESH_APP_CLIENT_ID` (variable) and `REFRESH_APP_PRIVATE_KEY` (secret),
 organisation-level on every owned org. The Dependency Merge Bot this section used to describe was never
@@ -133,7 +133,7 @@ Both workflows ship as dry runs.
 > `GET /users/{login}` answers 200 for all three deleted orgs here, so it cannot be used for this —
 > `GET /orgs/{login}` and `GET /user/orgs` are the endpoints that tell the truth.
 
-**Prerequisite for the merge gate, and it is not met:** `refresh-bot` must hold **checks: read** and **statuses: read**, because `merge.py` reads `commits/{sha}/check-runs` and `/status`. It holds neither today, so `decide()` sees no checks and refuses every pull request — fail-closed, not silent. Granting those two read permissions on the app, and having each org approve them, is the owner's step; widen `bot/policy.json`'s `ceiling` only after that, or every run answers 422.
+**Prerequisite for the merge gate, met on 2026-11-03:** `refresh-bot` holds **checks: read** and **statuses: read**, because `merge.py` reads `commits/{sha}/check-runs` and `/status`. All 10 orgs approved them, and `bot/policy.json`'s `ceiling` was widened only after that — widening it first makes every run answer 422. The gate is still dry-run: it runs only where `DEPENDABOT_MERGE_APPLY` is `true`, and no repository variable sets it, so it has never merged anything.
 
 The gate also has no **workflows: write**, deliberately: its key is organisation-level, and a `workflows: write` credential within reach of every workflow in the estate would let a release job rewrite the CI that gates it. So a Dependabot pull request that touches `.github/workflows/` — the `github-actions` ecosystem, roughly half the volume — is never merged by this token. Use `@dependabot merge` on those, which Dependabot performs with its own credentials.
 

@@ -163,8 +163,12 @@ class CeilingMatchesTheAppTest(unittest.TestCase):
     simtabi-bot was retired on 2026-11-03 to keep the estate to two apps, and refresh-bot became the
     single CI app. The two differ in a way that decides this file:
 
-        refresh-bot   contents=write metadata=read pull_requests=write        (3)
-        simtabi-bot   + checks, issues, statuses, workflows=write             (7)
+        refresh-bot   checks=read contents=write metadata=read
+                      pull_requests=write statuses=read                      (5)
+
+    checks and statuses were granted on 2026-11-03, after simtabi-bot was retired, so the
+    Dependabot merge gate can read whether a head is green; all 10 orgs approved them. The app
+    still has no workflows:write and must never gain it.
 
     refresh-bot is the narrower app, and its key is organisation-level on every owned org -- so a
     ceiling wider than it holds would put that extra reach within range of every workflow in the
@@ -172,8 +176,10 @@ class CeilingMatchesTheAppTest(unittest.TestCase):
     that gates it. Measured with `gh api apps/refresh-bot --jq .permissions`.
     """
 
-    REFRESH_BOT_HELD = {"contents": "write", "pull-requests": "write"}
+    REFRESH_BOT_HELD = {"contents": "write", "pull-requests": "write",
+                        "checks": "read", "statuses": "read"}
     NEVER = ("workflows", "issues", "administration", "members", "secrets")
+    # workflows is the one that matters: this app's key is organisation-level.
 
     def test_the_ceiling_is_exactly_what_the_app_holds(self):
         self.assertEqual(POLICY["ceiling"], self.REFRESH_BOT_HELD)
