@@ -164,5 +164,56 @@ class MainTest(unittest.TestCase):
             merge.main(["--owner", "adelsaiq"], gh=FakeGh({}))
 
 
+class NonVacuityTest(unittest.TestCase):
+    """A quiet run must prove it could have read a check, not merely that it read none.
+
+    The gate went 6/10 green on 2026-11-03 while holding no `checks: read`, because those six
+    orgs had no open Dependabot pull requests and so never called the API. These cases pin the
+    distinction between 'nothing to do' and 'cannot see anything'.
+    """
+
+    EMPTY_SEARCH = {"search/issues": [{"items": []}]}
+
+    def repos_route(self, **extra):
+        routes = dict(self.EMPTY_SEARCH)
+        routes["orgs/laranail/repos"] = [{"full_name": "laranail/emojis", "default_branch": "main"}]
+        routes.update(extra)
+        return routes
+
+    def test_quiet_run_passes_when_the_control_verifies(self):
+        gh = FakeGh(self.repos_route(**{"repos/laranail/emojis/commits/main/check-runs": [{"check_runs": []}]}))
+        self.assertEqual(merge.main(["--owner", "laranail"], gh=gh), 0)
+
+    def test_quiet_run_FAILS_when_checks_are_unreadable(self):
+        # No route for the check-runs path, so FakeGh raises -- the shape of a 403.
+        gh = FakeGh(self.repos_route())
+        self.assertEqual(merge.main(["--owner", "laranail"], gh=gh), 1)
+
+    def test_quiet_run_passes_when_there_is_nothing_to_probe(self):
+        # An account with no repositories cannot be probed; that is not a permission failure.
+        gh = FakeGh(dict(self.EMPTY_SEARCH, **{"orgs/laranail/repos": []}))
+        self.assertEqual(merge.main(["--owner", "laranail"], gh=gh), 0)
+
+    def test_an_empty_repository_is_not_read_as_a_permission_failure(self):
+        class EmptyRepoGh(FakeGh):
+            def api(self, path, paginate=False):
+                if "/check-runs" in path:
+                    raise common.GhError("gh: Git Repository is empty. (HTTP 409)")
+                return super().api(path, paginate=paginate)
+
+        self.assertEqual(merge.main(["--owner", "laranail"], gh=EmptyRepoGh(self.repos_route())), 0)
+
+    def test_control_reports_absence_not_just_presence(self):
+        # The negative half: a control that can only ever say "readable" proves nothing.
+        ok, detail = merge.checks_readable(FakeGh(self.repos_route()), "laranail", "org")
+        self.assertIs(ok, False)
+        self.assertIn("cannot read check runs", detail)
+
+    def test_every_examined_pr_erroring_is_called_out_as_systemic(self):
+        gh = FakeGh({"search/issues": [{"items": [
+            {"repository_url": "https://api.github.com/repos/laranail/emojis", "number": 7}]}]})
+        self.assertEqual(merge.main(["--owner", "laranail"], gh=gh), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

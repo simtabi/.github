@@ -176,6 +176,47 @@ def floor_for(gh, repo):
     return len(check_runs(gh, repo, last["head"]["sha"]))
 
 
+def checks_readable(gh, owner, kind):
+    """Positive control for the `checks: read` this gate depends on.
+
+    A run with no open Dependabot pull requests examines nothing, so its exit code reports
+    only that the search came back empty -- never that the gate *could* have read a check had
+    there been one. On 2026-11-03 that distinction was the whole story: six of ten org jobs
+    reported `0 open Dependabot pull requests` and went green while the minted token carried no
+    `checks: read` at all, because the ceiling in bot/policy.json had not been widened yet. The
+    run read as four isolated org failures instead of a control plane that could not read a
+    single check, and had the branch sweep left nothing open anywhere it would have been ten
+    green jobs over a gate that was entirely blind.
+
+    So exercise the same endpoint check_runs() uses, against a real commit. Returns
+    (ok, detail): True verified, False the permission is genuinely missing, and None when the
+    account simply has no repository to probe -- which is not a permission failure and must not
+    be reported as one.
+    """
+    listing = f"{'orgs' if kind == 'org' else 'users'}/{owner}/repos?per_page=5&sort=pushed"
+    try:
+        repos = gh.api(listing) or []
+    except Exception as exc:
+        return False, f"cannot list repositories: {str(exc)[:200]}"
+
+    last = None
+    for repo in repos:
+        full, branch = repo.get("full_name"), repo.get("default_branch")
+        if not full or not branch:
+            continue
+        try:
+            check_runs(gh, full, branch)
+            return True, f"verified on {full}@{branch}"
+        except Exception as exc:
+            detail = str(exc)[:200]
+            # An empty repository answers 409 and proves nothing either way; keep looking.
+            if "empty" in detail.lower() or "409" in detail:
+                last = f"{full} is empty"
+                continue
+            return False, f"cannot read check runs on {full}@{branch}: {detail}"
+    return None, last or "no repository with a default branch to probe"
+
+
 def dependabot_prs(gh, owner, kind):
     qualifier = "org" if kind == "org" else "user"
     q = f"{qualifier}:{owner}+is:pr+is:open+author:app/dependabot"
@@ -228,6 +269,27 @@ def main(argv=None, gh=None):
     mode = "apply" if opts.apply else "dry run"
     text = (f"## Dependabot merge gate: {opts.owner} ({mode})\n\n{len(rows)} open Dependabot pull requests.\n\n"
             + common.markdown_table(["repo", "PR", "action", "reason"], rows))
+
+    # Non-vacuity. A run that examined nothing, or whose every examined pull request errored,
+    # has established nothing about this gate's own access -- so it must not exit 0 on the
+    # strength of an empty result. See checks_readable() for the run this is written against.
+    examined = [r for r in rows if r[2] != "skip"]
+    if not examined:
+        ok, detail = checks_readable(gh, opts.owner, kind)
+        if ok is False:
+            errors += 1
+            text += (f"\n**Nothing examined, and the checks API is not readable — {detail}.** "
+                     "This is a gate failure, not an idle week: with no readable checks every "
+                     "pull request would be refused, so a quiet run cannot be trusted as green.\n")
+        elif ok is None:
+            text += f"\nNothing examined; no positive control available ({detail}).\n"
+        else:
+            text += f"\nNothing examined; checks API confirmed readable ({detail}).\n"
+    elif errors and errors == len(examined):
+        text += (f"\n**Every one of the {len(examined)} pull requests examined errored.** Treat this "
+                 "as one gate failure rather than N unrelated ones — a systemic cause (a token "
+                 "missing `checks: read`, say) presents exactly this way.\n")
+
     print(text)
     common.write_summary(text)
     return 1 if errors else 0
