@@ -202,11 +202,18 @@ def checks_readable(gh, owner, kind):
     wide-enough page closes that; where an account has only public repositories there is no
     private blindness to detect and a public probe is complete for it.
     """
+    def denied(detail):
+        """Evidence that the permission is missing, as opposed to any other failure."""
+        return "403" in detail or "not accessible by integration" in detail.lower()
+
     listing = f"{'orgs' if kind == 'org' else 'users'}/{owner}/repos?per_page=30&sort=pushed"
     try:
         repos = gh.api(listing) or []
     except Exception as exc:
-        return False, f"cannot list repositories: {str(exc)[:200]}"
+        detail = str(exc)[:200]
+        if denied(detail):
+            return False, f"cannot list repositories: {detail}"
+        return None, f"cannot list repositories: {detail}"
 
     # False sorts before True, so private repositories come first.
     repos = sorted(repos, key=lambda r: not r.get("private"))
@@ -222,11 +229,17 @@ def checks_readable(gh, owner, kind):
             return True, f"verified on {full}@{branch} ({scope})"
         except Exception as exc:
             detail = str(exc)[:200]
-            # An empty repository answers 409 and proves nothing either way; keep looking.
-            if "empty" in detail.lower() or "409" in detail:
-                last = f"{full} is empty"
-                continue
-            return False, f"cannot read check runs on {full}@{branch}: {detail}"
+            # Fail only on EVIDENCE that the permission is missing, and treat every other
+            # error as inconclusive. Enumerating the benign shapes instead was wrong once
+            # already: this skipped 409 and the word "empty", but an empty repository whose
+            # default_branch is nominally `main` answers 422 "No commit found for SHA" on
+            # *this* endpoint while /commits answers 409 -- so `simsange`, whose newest
+            # private repo is the empty `simsange/documentation`, was reported as a
+            # permission failure and would have gone red every quiet week.
+            if denied(detail):
+                return False, f"cannot read check runs on {full}@{branch}: {detail}"
+            last = f"{full}@{branch}: {detail}"
+            continue
     return None, last or "no repository with a default branch to probe"
 
 

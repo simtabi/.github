@@ -174,6 +174,21 @@ class NonVacuityTest(unittest.TestCase):
 
     EMPTY_SEARCH = {"search/issues": [{"items": []}]}
 
+    # The real shapes this control has to tell apart. A generic exception is not a 403, and
+    # testing with one is how the first version came to treat an empty repository's 422 as a
+    # permission failure.
+    DENIED = "gh api --paginate --slurp: gh: Resource not accessible by integration (HTTP 403)"
+    NO_COMMIT = "gh api --paginate --slurp: gh: No commit found for SHA: main (HTTP 422)"
+
+    def gh_raising(self, routes, on_check_runs):
+        """FakeGh that raises a specific error for check-runs paths."""
+        class Raising(FakeGh):
+            def api(self, path, paginate=False):
+                if "/check-runs" in path:
+                    raise common.GhError(on_check_runs)
+                return super().api(path, paginate=paginate)
+        return Raising(routes)
+
     def repos_route(self, **extra):
         routes = dict(self.EMPTY_SEARCH)
         routes["orgs/laranail/repos"] = [{"full_name": "laranail/emojis", "default_branch": "main"}]
@@ -185,8 +200,8 @@ class NonVacuityTest(unittest.TestCase):
         self.assertEqual(merge.main(["--owner", "laranail"], gh=gh), 0)
 
     def test_quiet_run_FAILS_when_checks_are_unreadable(self):
-        # No route for the check-runs path, so FakeGh raises -- the shape of a 403.
-        gh = FakeGh(self.repos_route())
+        # The real 403, not a generic exception: that is the only evidence of a missing permission.
+        gh = self.gh_raising(self.repos_route(), self.DENIED)
         self.assertEqual(merge.main(["--owner", "laranail"], gh=gh), 1)
 
     def test_quiet_run_passes_when_there_is_nothing_to_probe(self):
@@ -195,13 +210,36 @@ class NonVacuityTest(unittest.TestCase):
         self.assertEqual(merge.main(["--owner", "laranail"], gh=gh), 0)
 
     def test_an_empty_repository_is_not_read_as_a_permission_failure(self):
-        class EmptyRepoGh(FakeGh):
+        gh = self.gh_raising(self.repos_route(), "gh: Git Repository is empty. (HTTP 409)")
+        self.assertEqual(merge.main(["--owner", "laranail"], gh=gh), 0)
+
+    def test_an_empty_repo_answering_422_is_not_a_permission_failure(self):
+        """The shape that broke the first version. `simsange`'s newest private repository is
+        the empty `simsange/documentation`, whose default_branch is nominally `main`: /commits
+        answers 409 but commits/main/check-runs answers 422 'No commit found for SHA'. The
+        enumerate-the-benign-shapes version matched 409 and the word 'empty', missed 422, and
+        reported a permission failure that would have gone red every quiet week."""
+        gh = self.gh_raising(self.repos_route(), self.NO_COMMIT)
+        self.assertEqual(merge.main(["--owner", "laranail"], gh=gh), 0)
+        ok, detail = merge.checks_readable(gh, "laranail", "org")
+        self.assertIsNone(ok, "an inconclusive error must not become a permission verdict")
+        self.assertIn("422", detail)
+
+    def test_an_unlistable_account_is_inconclusive_unless_denied(self):
+        class NoList(FakeGh):
+            def __init__(self, routes, err):
+                super().__init__(routes)
+                self.err = err
+
             def api(self, path, paginate=False):
-                if "/check-runs" in path:
-                    raise common.GhError("gh: Git Repository is empty. (HTTP 409)")
+                if "/repos?" in path:
+                    raise common.GhError(self.err)
                 return super().api(path, paginate=paginate)
 
-        self.assertEqual(merge.main(["--owner", "laranail"], gh=EmptyRepoGh(self.repos_route())), 0)
+        ok, _ = merge.checks_readable(NoList(self.EMPTY_SEARCH, "gh: Not Found (HTTP 404)"), "laranail", "org")
+        self.assertIsNone(ok)
+        ok, _ = merge.checks_readable(NoList(self.EMPTY_SEARCH, self.DENIED), "laranail", "org")
+        self.assertIs(ok, False)
 
     def test_control_prefers_a_private_repository(self):
         """`checks: read` is enforced on private repos only, so probing a public one can
@@ -213,10 +251,18 @@ class NonVacuityTest(unittest.TestCase):
             {"full_name": "laranail/pub", "default_branch": "main", "private": False},
             {"full_name": "laranail/priv", "default_branch": "main", "private": True},
         ]
-        # Only the PUBLIC repo is readable -- the private one 403s, as in the real run.
+        # Only the PUBLIC repo is readable; the private one answers a real 403, as in the run.
         routes["repos/laranail/pub/commits/main/check-runs"] = [{"check_runs": []}]
-        gh = FakeGh(routes)
-        ok, detail = merge.checks_readable(gh, "laranail", "org")
+
+        denied = self.DENIED
+
+        class PrivateDenied(FakeGh):
+            def api(self, path, paginate=False):
+                if "laranail/priv" in path and "/check-runs" in path:
+                    raise common.GhError(denied)
+                return super().api(path, paginate=paginate)
+
+        ok, detail = merge.checks_readable(PrivateDenied(routes), "laranail", "org")
         self.assertIs(ok, False, "a public-only read must not pass as verification")
         self.assertIn("laranail/priv", detail)
 
@@ -239,7 +285,9 @@ class NonVacuityTest(unittest.TestCase):
 
     def test_control_reports_absence_not_just_presence(self):
         # The negative half: a control that can only ever say "readable" proves nothing.
-        ok, detail = merge.checks_readable(FakeGh(self.repos_route()), "laranail", "org")
+        # It must answer False on the real 403, and only on that.
+        gh = self.gh_raising(self.repos_route(), self.DENIED)
+        ok, detail = merge.checks_readable(gh, "laranail", "org")
         self.assertIs(ok, False)
         self.assertIn("cannot read check runs", detail)
 
