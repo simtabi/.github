@@ -203,6 +203,40 @@ class NonVacuityTest(unittest.TestCase):
 
         self.assertEqual(merge.main(["--owner", "laranail"], gh=EmptyRepoGh(self.repos_route())), 0)
 
+    def test_control_prefers_a_private_repository(self):
+        """`checks: read` is enforced on private repos only, so probing a public one can
+        report 'readable' while the gate is blind to every repo it actually works on. That is
+        what happened on 2026-11-03: simtabi's single pull request passed on the public
+        cli-kit-js with the same token that 403'd on four orgs' private repos."""
+        routes = dict(self.EMPTY_SEARCH)
+        routes["orgs/laranail/repos"] = [
+            {"full_name": "laranail/pub", "default_branch": "main", "private": False},
+            {"full_name": "laranail/priv", "default_branch": "main", "private": True},
+        ]
+        # Only the PUBLIC repo is readable -- the private one 403s, as in the real run.
+        routes["repos/laranail/pub/commits/main/check-runs"] = [{"check_runs": []}]
+        gh = FakeGh(routes)
+        ok, detail = merge.checks_readable(gh, "laranail", "org")
+        self.assertIs(ok, False, "a public-only read must not pass as verification")
+        self.assertIn("laranail/priv", detail)
+
+    def test_control_names_the_visibility_it_verified(self):
+        routes = dict(self.EMPTY_SEARCH)
+        routes["orgs/laranail/repos"] = [{"full_name": "laranail/priv", "default_branch": "main", "private": True}]
+        routes["repos/laranail/priv/commits/main/check-runs"] = [{"check_runs": []}]
+        ok, detail = merge.checks_readable(FakeGh(routes), "laranail", "org")
+        self.assertIs(ok, True)
+        self.assertIn("(private)", detail)
+
+    def test_a_public_only_account_still_verifies(self):
+        # No private repository means no private blindness to detect; a public probe is complete.
+        routes = dict(self.EMPTY_SEARCH)
+        routes["orgs/laranail/repos"] = [{"full_name": "laranail/pub", "default_branch": "main", "private": False}]
+        routes["repos/laranail/pub/commits/main/check-runs"] = [{"check_runs": []}]
+        ok, detail = merge.checks_readable(FakeGh(routes), "laranail", "org")
+        self.assertIs(ok, True)
+        self.assertIn("(public)", detail)
+
     def test_control_reports_absence_not_just_presence(self):
         # The negative half: a control that can only ever say "readable" proves nothing.
         ok, detail = merge.checks_readable(FakeGh(self.repos_route()), "laranail", "org")
