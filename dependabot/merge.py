@@ -192,12 +192,24 @@ def checks_readable(gh, owner, kind):
     (ok, detail): True verified, False the permission is genuinely missing, and None when the
     account simply has no repository to probe -- which is not a permission failure and must not
     be reported as one.
+
+    The probe must prefer a PRIVATE repository, because `checks: read` is only enforced on one.
+    The same 2026-11-03 run proves it: `simtabi` examined one pull request and it passed, on the
+    public `simtabi/cli-kit-js`, with the very token that answered 403 for every private repo in
+    the other four orgs. A control that happens to pick a public repo therefore reports
+    "readable" while the gate is blind to every repository it actually works on -- the estate's
+    Dependabot pull requests sit overwhelmingly in private ones. Sorting private-first over a
+    wide-enough page closes that; where an account has only public repositories there is no
+    private blindness to detect and a public probe is complete for it.
     """
-    listing = f"{'orgs' if kind == 'org' else 'users'}/{owner}/repos?per_page=5&sort=pushed"
+    listing = f"{'orgs' if kind == 'org' else 'users'}/{owner}/repos?per_page=30&sort=pushed"
     try:
         repos = gh.api(listing) or []
     except Exception as exc:
         return False, f"cannot list repositories: {str(exc)[:200]}"
+
+    # False sorts before True, so private repositories come first.
+    repos = sorted(repos, key=lambda r: not r.get("private"))
 
     last = None
     for repo in repos:
@@ -206,7 +218,8 @@ def checks_readable(gh, owner, kind):
             continue
         try:
             check_runs(gh, full, branch)
-            return True, f"verified on {full}@{branch}"
+            scope = "private" if repo.get("private") else "public"
+            return True, f"verified on {full}@{branch} ({scope})"
         except Exception as exc:
             detail = str(exc)[:200]
             # An empty repository answers 409 and proves nothing either way; keep looking.
@@ -284,7 +297,10 @@ def main(argv=None, gh=None):
         elif ok is None:
             text += f"\nNothing examined; no positive control available ({detail}).\n"
         else:
-            text += f"\nNothing examined; checks API confirmed readable ({detail}).\n"
+            caveat = "" if "(private)" in detail else (
+                " Only a public repository was available to probe, which does not exercise "
+                "`checks: read` — that is enforced on private repositories only.")
+            text += f"\nNothing examined; checks API confirmed readable ({detail}).{caveat}\n"
     elif errors and errors == len(examined):
         text += (f"\n**Every one of the {len(examined)} pull requests examined errored.** Treat this "
                  "as one gate failure rather than N unrelated ones — a systemic cause (a token "
