@@ -10,7 +10,8 @@
 # We design and build software, brands, and the tools in between.
 
 [Simtabi](https://simtabi.com) is a software design agency and design & branding
-studio operating across New York, Delaware, and North Carolina, USA. We take on
+studio operating in Delaware and North Carolina and serving clients nationwide,
+USA. We take on
 the whole picture: product engineering, web and mobile apps, brand identity,
 graphic design, and the visual systems that hold them together. When a tool we
 build earns its keep beyond our own desks, we open-source it and keep
