@@ -12,7 +12,8 @@
 #       with:
 #         tag: ${{ inputs.tag || github.ref_name }}
 #
-# Optional: runs-on (a macOS runner for a project whose darwin build needs cgo), environment (a
+# Optional: node-version (default: the latest Node, for a before-hook that builds a web UI),
+# runs-on (a macOS runner for a project whose darwin build needs cgo), environment (a
 # GitHub environment the job runs under, such as `release`), and the SIGNPATH_API_TOKEN secret,
 # passed explicitly (`secrets: SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}`, never
 # `secrets: inherit`) for a GoReleaser config that signs through SignPath.
@@ -72,6 +73,13 @@ on:
         required: false
         type: string
         default: ''
+      node-version:
+        description: >-
+          Node.js for a GoReleaser before-hook that builds a web UI, such as 22. Defaults to the
+          latest release (owner, 2026-11-13: "default should always be the latest version").
+        required: false
+        type: string
+        default: latest
     secrets:
       SIGNPATH_API_TOKEN:
         description: 'SignPath API token, exported to GoReleaser for a config that signs through SignPath'
@@ -138,6 +146,13 @@ jobs:
         with:
           go-version-file: ${{ inputs.go-version-file }}
           cache-dependency-path: ${{ inputs.module-alias-prefix }}go.sum
+
+      # A project whose GoReleaser before-hooks build a web UI needs Node; the latest release
+      # unless the caller pins one (browser-foreman passes 22, matching its CI).
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ inputs.node-version }}
 
       # syft generates GoReleaser's per-archive SBOMs; cosign signs checksums.txt where the config asks.
       - name: Install syft
