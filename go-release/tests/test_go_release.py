@@ -112,6 +112,9 @@ class CallerTemplate(unittest.TestCase):
     def test_a_dispatch_names_the_tag(self):
         self.assertRegex(self.text, r"workflow_dispatch:\n    inputs:\n      tag:")
 
+    def test_it_says_how_to_pin_a_version(self):
+        self.assertRegex(self.text, r"# replace with @<commit>  # vX\.Y\.Z when copying")
+
     def test_it_calls_the_shared_workflow(self):
         self.assertIn("uses: simtabi/.github/.github/workflows/go-release.yml@", self.text)
         for perm in ("contents: write", "id-token: write", "attestations: write"):

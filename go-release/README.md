@@ -7,12 +7,21 @@ nowhere else. The standard it implements is `~/.claude/rules/go.md`, *Go release
 ## Using it
 
 Copy [`templates/go/release.yml`](../templates/go/release.yml) to the repository's
-`.github/workflows/release.yml` and pin the `uses:` line to a commit of this repository. It runs on:
+`.github/workflows/release.yml` and pin the `uses:` line to the commit of this repository's latest
+`vX.Y.Z` tag, with the version as the comment: `go-release.yml@<commit>  # vX.Y.Z`. It runs on:
 
 - a pushed `vX.Y.Z` or `vX.Y.Z-pre` tag: `git push origin vX.Y.Z`;
 - a request naming a tag already on GitHub: `gh workflow run release.yml --repo OWNER/REPO -f tag=vX.Y.Z`.
 
 Push a version tag only for final code: tags are final, and a pushed tag publishes.
+
+## Versions
+
+This repository tags each change to the shared workflow as a release (`v1.0.0` on 2026-11-13 is the
+first), and tags are final: a fix gets the next version. A caller pins
+the tag's commit with a `# vX.Y.Z` comment, which is the form Dependabot's github-actions updater
+recognises: it opens a pull request moving the commit and the comment together when a new tag appears.
+A pin to a bare commit, or a comment that names a pull request, is never updated by Dependabot.
 
 ## Inputs
 

@@ -35,6 +35,8 @@ jobs:
       contents: write
       id-token: write
       attestations: write
-    uses: simtabi/.github/.github/workflows/go-release.yml@main  # pin to a commit when copying
+    # Pin to the commit of the latest vX.Y.Z tag of simtabi/.github, with that version as the comment
+    # (`@<commit>  # vX.Y.Z`): Dependabot's github-actions updater then moves both together.
+    uses: simtabi/.github/.github/workflows/go-release.yml@main  # replace with @<commit>  # vX.Y.Z when copying
     with:
       tag: ${{ inputs.tag || github.ref_name }}
