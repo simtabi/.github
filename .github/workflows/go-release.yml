@@ -1,0 +1,213 @@
+# Reusable Go release: build the binaries and publish them on the repository's GitHub release,
+# and nowhere else (no Go module proxy path, Homebrew, Scoop, Winget, image or any other channel).
+# The standard is ~/.claude/rules/go.md, "Go releases"; this file is its one implementation.
+#
+# A caller's release.yml declares the triggers (a pushed vX.Y.Z tag, or a dispatch naming one) and
+# grants the permissions; templates/go/release.yml is the caller to copy. From the caller:
+#
+#   jobs:
+#     release:
+#       permissions: { contents: write, id-token: write, attestations: write }
+#       uses: simtabi/.github/.github/workflows/go-release.yml@<commit>
+#       with:
+#         tag: ${{ inputs.tag || github.ref_name }}
+#
+# Steps: resolve and check the tag; refuse a GoReleaser config that publishes anywhere else; take
+# the release notes from the tag's CHANGELOG section (fail closed); push the module's subdirectory
+# alias tag (src/vX.Y.Z); run GoReleaser; read the published notes back; run the caller's optional
+# post-release command (extra assets); attest build provenance for everything checksummed.
+name: Go release
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'The vX.Y.Z (or vX.Y.Z-pre) tag to build and publish; it must already be on GitHub'
+        required: true
+        type: string
+      goreleaser-config:
+        description: 'GoReleaser config, relative to the repository root'
+        required: false
+        type: string
+        default: src/.goreleaser.yaml
+      go-version-file:
+        description: 'go.mod that pins the Go version'
+        required: false
+        type: string
+        default: src/go.mod
+      module-alias-prefix:
+        description: "Subdirectory the Go module lives in, for its alias tag (src/ gives src/vX.Y.Z); empty for none"
+        required: false
+        type: string
+        default: src/
+      changelog:
+        description: 'CHANGELOG whose "## [X.Y.Z]" section becomes the release notes'
+        required: false
+        type: string
+        default: CHANGELOG.md
+      post-release:
+        description: >-
+          Optional command run from the repository root after GoReleaser, with TAG, VERSION, DIST and
+          GH_TOKEN set, to build and attach extra assets. It may write $RUNNER_TEMP/extra-checksums.txt
+          (sha256sum format, bare names) to have those assets attested too.
+        required: false
+        type: string
+        default: ''
+
+permissions: {}
+
+jobs:
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write      # create the release, upload assets, push the module alias tag
+      id-token: write      # Sigstore keyless identity, for cosign and the attestation
+      attestations: write  # store the build-provenance attestation
+    env:
+      TAG: ${{ inputs.tag }}
+      # Our own modules come from git, never through the public proxy, so a release build never
+      # feeds proxy.golang.org or sum.golang.org a tag.
+      GOPRIVATE: github.com/${{ github.repository_owner }}/*
+      GONOSUMDB: github.com/${{ github.repository_owner }}/*
+    steps:
+      - name: Check the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$TAG' is not a vX.Y.Z or vX.Y.Z-pre tag."
+            exit 1
+          fi
+          if ! gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --silent; then
+            echo "::error::$TAG is not a tag on $GITHUB_REPOSITORY. Push it first; a release builds from a tag only."
+            exit 1
+          fi
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+
+      - name: Checkout the tag
+        uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0   # GoReleaser reads the tag and the history
+
+      # The standard, enforced where every release passes: the GitHub release is the only channel.
+      - name: Refuse any other publishing channel
+        env:
+          CONFIG: ${{ inputs.goreleaser-config }}
+        run: |
+          set -euo pipefail
+          [ -f "$CONFIG" ] || { echo "::error::no GoReleaser config at $CONFIG"; exit 1; }
+          banned='brews|homebrew_casks|scoops|winget|chocolateys|aurs|aur_sources|snapcrafts|flatpaks|nix|dockers|dockers_v2|docker_manifests|docker_signs|kos|krews|npms|cloudsmiths|furies|publishers|blobs|uploads|artifactories'
+          if grep -nE "^($banned):" "$CONFIG"; then
+            echo "::error::$CONFIG publishes outside the GitHub release (the blocks above). Remove them: binaries ship on the GitHub release only."
+            exit 1
+          fi
+          dist=$(sed -nE 's/^dist:[[:space:]]*"?([^"#[:space:]]+)"?.*/\1/p' "$CONFIG")
+          echo "DIST=${dist:-dist}" >> "$GITHUB_ENV"
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: ${{ inputs.go-version-file }}
+          cache-dependency-path: ${{ inputs.module-alias-prefix }}go.sum
+
+      # syft generates GoReleaser's per-archive SBOMs; cosign signs checksums.txt where the config asks.
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      # Fail closed: a final tag whose version has no CHANGELOG section is a tag on the wrong commit
+      # or a release nobody wrote notes for. A pre-release tag is a test build and needs none.
+      # Written outside the checkout: GoReleaser refuses to release from a dirty tree.
+      - name: Extract the changelog section
+        env:
+          CHANGELOG: ${{ inputs.changelog }}
+        run: |
+          set -euo pipefail
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { found = 1; next }
+            found && /^## \[/        { exit }
+            found                    { print }
+          ' "$CHANGELOG" > "$RUNNER_TEMP/section.md"
+          if [ -z "$(tr -d '[:space:]' < "$RUNNER_TEMP/section.md")" ] && [[ "$VERSION" == *-* ]]; then
+            echo "Pre-release build ${TAG}, for testing. The notes ship with the final v${VERSION%%-*}." > "$RUNNER_TEMP/section.md"
+          fi
+          if [ -z "$(tr -d '[:space:]' < "$RUNNER_TEMP/section.md")" ]; then
+            echo "::error::$CHANGELOG has no '## [$VERSION]' section. Refusing to publish $TAG."
+            exit 1
+          fi
+          {
+            cat "$RUNNER_TEMP/section.md"
+            echo ''
+            echo "**Full changelog:** https://github.com/${GITHUB_REPOSITORY}/blob/main/${CHANGELOG}"
+          } > "$RUNNER_TEMP/release_notes.md"
+
+      # A module in a subdirectory resolves through a tag named after it (src/vX.Y.Z), which OSS
+      # GoReleaser rejects as non-semver, so it is mirrored here onto the same commit. It matches no
+      # trigger. An alias already on GitHub is left alone: a module tag is permanent once fetched.
+      - name: Mirror the module alias tag
+        if: inputs.module-alias-prefix != ''
+        env:
+          PREFIX: ${{ inputs.module-alias-prefix }}
+        run: |
+          set -euo pipefail
+          alias_tag="${PREFIX%/}/${TAG}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${alias_tag}" >/dev/null; then
+            echo "${alias_tag} already exists on the remote"
+          else
+            git tag "${alias_tag}" "${TAG}^{commit}"
+            git push origin "refs/tags/${alias_tag}"
+            echo "pushed ${alias_tag}"
+          fi
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          version: '~> v2'
+          args: release --clean --config ${{ inputs.goreleaser-config }} --release-notes=${{ runner.temp }}/release_notes.md
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GORELEASER_CURRENT_TAG: ${{ inputs.tag }}
+
+      # Fail closed on an empty release body: read the published release back and require at least
+      # the changelog section passed in.
+      - name: Verify the published release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          want=$(tr -d '[:space:]' < "$RUNNER_TEMP/section.md" | wc -c)
+          got=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq '.body' | tr -d '[:space:]' | wc -c)
+          echo "section=${want} body=${got} (non-space characters)"
+          if [ "$got" -lt "$want" ]; then
+            echo "::error::The ${TAG} release body is shorter than its CHANGELOG section (${got} < ${want})."
+            exit 1
+          fi
+
+      - name: Post-release assets
+        if: inputs.post-release != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          POST_RELEASE: ${{ inputs.post-release }}
+        run: bash -euo pipefail -c "$POST_RELEASE"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-checksums: ${{ env.DIST }}/checksums.txt
+
+      - name: Check for extra assets to attest
+        id: extra
+        run: |
+          if [ -s "$RUNNER_TEMP/extra-checksums.txt" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Attest the extra assets
+        if: steps.extra.outputs.present == 'true'
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-checksums: ${{ runner.temp }}/extra-checksums.txt

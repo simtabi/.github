@@ -29,6 +29,8 @@ jobs:
         run: python3 -m unittest discover -s dependabot/tests -v
       - name: Bot policy tests
         run: python3 -m unittest discover -s bot/tests -v
+      - name: Go release workflow tests
+        run: python3 -m unittest discover -s go-release/tests -v
 
   actionlint:
     name: actionlint
