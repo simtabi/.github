@@ -23,6 +23,7 @@ Push a version tag only for final code: tags are final, and a pushed tag publish
 | `go-version-file` | `src/go.mod` | the `go.mod` that pins the Go version |
 | `module-alias-prefix` | `src/` | the module's subdirectory, for its `src/vX.Y.Z` alias tag; empty for none |
 | `changelog` | `CHANGELOG.md` | its `## [X.Y.Z]` section becomes the release notes |
+| `node-version` | `latest` | Node.js for a before-hook that builds a web UI; the latest release unless pinned (`22`) |
 | `post-release` | empty | a command run after GoReleaser to attach extra assets; it may write `$RUNNER_TEMP/extra-checksums.txt` to have them attested |
 | `runs-on` | `ubuntu-latest` | the runner label for the job; `macos-latest` for a project whose darwin build needs cgo |
 | `environment` | empty | a GitHub environment the job runs under (for example `release`); empty for none |

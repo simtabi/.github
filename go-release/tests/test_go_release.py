@@ -89,6 +89,13 @@ class SharedWorkflow(unittest.TestCase):
             self.assertRegex(st, r"\n        if: .*github\.event\.repository\.private == false", st)
 
 
+    def test_node_defaults_to_the_latest_release(self):
+        m = re.search(r"\n      node-version:\n(?:        .*\n)*?        default: (\S+)", self.text)
+        self.assertIsNotNone(m, "no node-version input")
+        self.assertEqual(m.group(1), "latest")
+        self.assertIn("node-version: ${{ inputs.node-version }}", self.text)
+
+
 class CallerTemplate(unittest.TestCase):
     def setUp(self):
         self.text = TEMPLATE.read_text()
