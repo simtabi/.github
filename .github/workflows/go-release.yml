@@ -21,6 +21,10 @@
 # the release notes from the tag's CHANGELOG section (fail closed); push the module's subdirectory
 # alias tag (src/vX.Y.Z); run GoReleaser; read the published notes back; run the caller's optional
 # post-release command (extra assets); attest build provenance for everything checksummed.
+#
+# This workflow signs the attestation, so a downloaded asset verifies with it named as the signer:
+#   gh attestation verify <file> --repo OWNER/REPO --signer-workflow simtabi/.github/.github/workflows/go-release.yml
+# Without --signer-workflow, gh expects a workflow in the caller's repository and the check fails.
 name: Go release
 
 on:
