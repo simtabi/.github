@@ -48,6 +48,42 @@ class SharedWorkflow(unittest.TestCase):
         self.assertIn("actions/attest-build-provenance", self.text)
         self.assertIn("GORELEASER_CURRENT_TAG: ${{ inputs.tag }}", self.text)
 
+    def input_block(self, name):
+        m = re.search(r"\n      " + re.escape(name) + r":\n((?:        .*\n)+)", self.text)
+        self.assertIsNotNone(m, f"no {name} input")
+        return m.group(1)
+
+    def job(self):
+        return re.search(r"^jobs:\n((?:[ \t]+.*\n|\n)+)", self.text, re.M).group(1)
+
+    def test_the_runner_is_an_input_defaulting_to_ubuntu(self):
+        block = self.input_block("runs-on")
+        self.assertIn("required: false", block)
+        self.assertRegex(block, r"default: ['\"]?ubuntu-latest['\"]?\n")
+        self.assertRegex(self.job(), r"\n    runs-on: \$\{\{ inputs\.runs-on \}\}\n")
+
+    def test_the_environment_is_an_optional_input(self):
+        block = self.input_block("environment")
+        self.assertIn("required: false", block)
+        self.assertRegex(block, r"default: ''\n")
+        self.assertRegex(self.job(), r"\n    environment: \$\{\{ inputs\.environment \}\}\n")
+
+    def test_the_signpath_token_is_an_optional_secret_for_goreleaser(self):
+        secrets = re.search(r"\n    secrets:\n((?:      .*\n)+)", self.text)
+        self.assertIsNotNone(secrets, "workflow_call declares no secrets")
+        m = re.search(r"      SIGNPATH_API_TOKEN:\n((?:        .*\n)+)", secrets.group(1))
+        self.assertIsNotNone(m, "no SIGNPATH_API_TOKEN secret")
+        self.assertIn("required: false", m.group(1))
+        step = re.search(r"- name: Run GoReleaser\n((?:        .*\n)+)", self.text).group(1)
+        self.assertIn("SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}", step)
+
+    def test_attestations_skip_a_private_repository(self):
+        steps = re.findall(r"\n((?:      - name: .*\n)(?:        .*\n)*)", self.text)
+        attest = [st for st in steps if "actions/attest-build-provenance" in st]
+        self.assertEqual(len(attest), 2, "expected two attestation steps")
+        for st in attest:
+            self.assertRegex(st, r"\n        if: .*github\.event\.repository\.private == false", st)
+
 
 class CallerTemplate(unittest.TestCase):
     def setUp(self):

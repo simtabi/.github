@@ -24,6 +24,20 @@ Push a version tag only for final code: tags are final, and a pushed tag publish
 | `module-alias-prefix` | `src/` | the module's subdirectory, for its `src/vX.Y.Z` alias tag; empty for none |
 | `changelog` | `CHANGELOG.md` | its `## [X.Y.Z]` section becomes the release notes |
 | `post-release` | empty | a command run after GoReleaser to attach extra assets; it may write `$RUNNER_TEMP/extra-checksums.txt` to have them attested |
+| `runs-on` | `ubuntu-latest` | the runner label for the job; `macos-latest` for a project whose darwin build needs cgo |
+| `environment` | empty | a GitHub environment the job runs under (for example `release`); empty for none |
+
+## Secrets
+
+| Secret | Required | What it is |
+|---|---|---|
+| `SIGNPATH_API_TOKEN` | no | exported to the GoReleaser step for a config that signs through SignPath. Pass it explicitly, `secrets: SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}`, never `secrets: inherit` |
+
+## Attestations
+
+Build provenance is attested for `checksums.txt` and any extra assets on a **public** repository
+only: GitHub Free refuses attestations on a private one, so both steps skip when
+`github.event.repository.private` is true. The release itself still publishes.
 
 ## What it refuses
 

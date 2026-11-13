@@ -12,6 +12,11 @@
 #       with:
 #         tag: ${{ inputs.tag || github.ref_name }}
 #
+# Optional: runs-on (a macOS runner for a project whose darwin build needs cgo), environment (a
+# GitHub environment the job runs under, such as `release`), and the SIGNPATH_API_TOKEN secret,
+# passed explicitly (`secrets: SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}`, never
+# `secrets: inherit`) for a GoReleaser config that signs through SignPath.
+#
 # Steps: resolve and check the tag; refuse a GoReleaser config that publishes anywhere else; take
 # the release notes from the tag's CHANGELOG section (fail closed); push the module's subdirectory
 # alias tag (src/vX.Y.Z); run GoReleaser; read the published notes back; run the caller's optional
@@ -53,13 +58,29 @@ on:
         required: false
         type: string
         default: ''
+      runs-on:
+        description: 'Runner label for the job, such as macos-latest for a darwin build that needs cgo'
+        required: false
+        type: string
+        default: ubuntu-latest
+      environment:
+        description: 'GitHub environment the job runs under, such as release; empty for none'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      SIGNPATH_API_TOKEN:
+        description: 'SignPath API token, exported to GoReleaser for a config that signs through SignPath'
+        required: false
 
 permissions: {}
 
 jobs:
   release:
     name: Publish release
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs-on }}
+    # An empty name runs the job under no environment.
+    environment: ${{ inputs.environment }}
     timeout-minutes: 40
     permissions:
       contents: write      # create the release, upload assets, push the module alias tag
@@ -173,6 +194,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GORELEASER_CURRENT_TAG: ${{ inputs.tag }}
+          # Empty unless the caller passes it; only a config that signs through SignPath reads it.
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
 
       # Fail closed on an empty release body: read the published release back and require at least
       # the changelog section passed in.
@@ -196,7 +219,11 @@ jobs:
           POST_RELEASE: ${{ inputs.post-release }}
         run: bash -euo pipefail -c "$POST_RELEASE"
 
+      # GitHub Free refuses artifact attestations on a private repository, so both attestation
+      # steps run on public repositories only. github.event.repository is the caller's repository,
+      # set on the push and workflow_dispatch events that start a release.
       - name: Attest build provenance
+        if: github.event.repository.private == false
         uses: actions/attest-build-provenance@v4
         with:
           subject-checksums: ${{ env.DIST }}/checksums.txt
@@ -207,7 +234,7 @@ jobs:
           if [ -s "$RUNNER_TEMP/extra-checksums.txt" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; fi
 
       - name: Attest the extra assets
-        if: steps.extra.outputs.present == 'true'
+        if: steps.extra.outputs.present == 'true' && github.event.repository.private == false
         uses: actions/attest-build-provenance@v4
         with:
           subject-checksums: ${{ runner.temp }}/extra-checksums.txt
