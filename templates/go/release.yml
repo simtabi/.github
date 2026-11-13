@@ -5,6 +5,9 @@
 #   gh workflow run release.yml --repo OWNER/REPO -f tag=vX.Y.Z  the same, for a tag already pushed
 #
 # Push a version tag only for final code: tags are final, and a pushed tag publishes.
+#
+# The shared workflow signs the provenance, so a downloaded asset verifies with it as the signer:
+#   gh attestation verify <file> --repo OWNER/REPO --signer-workflow simtabi/.github/.github/workflows/go-release.yml
 name: Release
 
 on:

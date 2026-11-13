@@ -39,6 +39,18 @@ Build provenance is attested for `checksums.txt` and any extra assets on a **pub
 only: GitHub Free refuses attestations on a private one, so both steps skip when
 `github.event.repository.private` is true. The release itself still publishes.
 
+This workflow is what signs, not the caller's `release.yml`, so a check of a downloaded asset names
+it as the signer:
+
+```bash
+gh attestation verify authama_linux_amd64 --repo simtabi/authama \
+  --signer-workflow simtabi/.github/.github/workflows/go-release.yml
+```
+
+Without `--signer-workflow`, `gh` expects a workflow in the caller's repository and fails with
+`Error: verifying with issuer "sigstore.dev"` (measured 2026-11-13 against simtabi/authama v0.1.6,
+which verified with the flag). A caller's docs should show the command with it.
+
 ## What it refuses
 
 - a tag that is not `vX.Y.Z[-pre]`, or is not on GitHub;

@@ -11,6 +11,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github" / "workflows" / "go-release.yml"
 TEMPLATE = ROOT / "templates" / "go" / "release.yml"
+README = ROOT / "go-release" / "README.md"
+
+# The shared workflow signs every caller's provenance, so a verify command has to name it.
+SIGNER = "--signer-workflow simtabi/.github/.github/workflows/go-release.yml"
 
 # Every GoReleaser block that publishes somewhere other than the GitHub release.
 CHANNELS = {
@@ -109,3 +113,19 @@ class CallerTemplate(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class VerifyCommands(unittest.TestCase):
+    """Every `gh attestation verify` shown names this workflow as the signer: without it, gh expects
+    a workflow in the caller's repository and the check fails (simtabi/authama v0.1.6, 2026-11-13)."""
+
+    def test_each_verify_command_names_the_shared_signer(self):
+        found = 0
+        for path in (WORKFLOW, TEMPLATE, README):
+            text = re.sub(r"\\\n\s*", " ", path.read_text())
+            for line in text.splitlines():
+                if "gh attestation verify" not in line:
+                    continue
+                found += 1
+                self.assertIn(SIGNER, " ".join(line.split()), f"{path.name}: {line.strip()}")
+        self.assertGreaterEqual(found, 3, "the workflow, template and README should each show the command")
