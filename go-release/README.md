@@ -17,8 +17,9 @@ Push a version tag only for final code: tags are final, and a pushed tag publish
 
 ## Versions
 
-This repository tags each change to the shared workflow as a release (`v1.0.0` on 2026-11-13 is the
-first), and tags are final: a fix gets the next version. A caller pins
+This repository tags each change to the shared workflow as a release (`v0.1.0` on 2026-11-14 is the
+first; an earlier `v1.0.0` and `v1.0.1` were withdrawn in a planned history reset), and tags are
+final: a fix gets the next version. A caller pins
 the tag's commit with a `# vX.Y.Z` comment, which is the form Dependabot's github-actions updater
 recognises: it opens a pull request moving the commit and the comment together when a new tag appears.
 A pin to a bare commit, or a comment that names a pull request, is never updated by Dependabot.
