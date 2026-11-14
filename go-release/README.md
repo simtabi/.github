@@ -43,6 +43,19 @@ A pin to a bare commit, or a comment that names a pull request, is never updated
 |---|---|---|
 | `SIGNPATH_API_TOKEN` | no | exported to the GoReleaser step for a config that signs through SignPath. Pass it explicitly, `secrets: SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}`, never `secrets: inherit` |
 
+## Our own modules come from git
+
+The release job sets `GOPRIVATE` and `GONOSUMDB` to every Simtabi-owned org (`simtabi`, `laranail`,
+`ichava`, `sangehq`, `simsange`, `mukoracms`, `brandgulp`, `tayariai`, `tusente`, `simbi-prjs-clt`,
+`simbi-prjs-int`), so a release fetches those modules from git and never feeds proxy.golang.org or
+sum.golang.org a tag, the same as CI. It covers every org, not only the caller's: `sangehq/authama`
+imports `github.com/simtabi/go-notifykit/src`. Client accounts (`adelsaiq`, `dannielagumo`) stay off
+the list. The list was re-derived on 2026-11-14 with `gh api user/orgs --jq '.[].login'`; when an org
+joins or leaves, change the workflow and `OWNED_ORGS` in `go-release/tests/` together.
+
+Public modules need no credentials over git. The job's `github.token` reaches only the caller's own
+repository, so a private module in another repository cannot be fetched by a release build.
+
 ## Attestations
 
 Build provenance is attested for `checksums.txt` and any extra assets on a **public** repository
