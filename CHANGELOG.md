@@ -5,6 +5,8 @@ and callers pin `go-release.yml@<commit>  # vX.Y.Z`.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-14
+
 ### Fixed
 
 - `go-release.yml` sets `GOPRIVATE` and `GONOSUMDB` to every Simtabi-owned org, not only the
@@ -21,5 +23,6 @@ First tagged release of the shared workflows.
   or on request.
 - `templates/go/release.yml`: the caller to copy.
 
-[Unreleased]: https://github.com/simtabi/.github/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/simtabi/.github/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/simtabi/.github/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/simtabi/.github/releases/tag/v1.0.0
