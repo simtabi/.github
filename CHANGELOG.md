@@ -7,6 +7,9 @@ and callers pin `go-release.yml@<commit>  # vX.Y.Z`.
 
 ### Changed
 
+- `templates/health/orgs.json` renders the health set for six more owned orgs: `sangehq`,
+  `simsange`, `tayariai`, `tusente`, `simbi-prjs-clt` and `simbi-prjs-int`, each with the
+  default entry `new-org-profile.sh` scaffolds, so `render-health.sh --check` covers them.
 - `dependabot/policy.json` reconciles and merge-gates `sangehq`, the eleventh owned org, which was
   missing from `accounts.orgs`. It excludes the three repositories on the WIP ignore list
   (`brandgulp/brandgulp.com`, `simbi-prjs-int/creamer.simtabi.com`, `tusente/web-app`) so turning

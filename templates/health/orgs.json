@@ -131,6 +131,126 @@
         "ORG": "brandgulp"
       },
       "pull_request": {}
+    },
+    "sangehq": {
+      "security": {
+        "SUBJECT": "the open-source projects in the [sangehq](https://github.com/sangehq) organization",
+        "SCOPE": "in this organization",
+        "EXTRA": ""
+      },
+      "support": {
+        "DOCS_EXTRA": ""
+      },
+      "code_of_conduct": {},
+      "contributing": {
+        "ORG_LABEL": "sangehq"
+      },
+      "issue_bug": {},
+      "issue_feature": {},
+      "issue_config": {
+        "ORG": "sangehq"
+      },
+      "pull_request": {}
+    },
+    "simsange": {
+      "security": {
+        "SUBJECT": "the open-source projects in the [simsange](https://github.com/simsange) organization",
+        "SCOPE": "in this organization",
+        "EXTRA": ""
+      },
+      "support": {
+        "DOCS_EXTRA": ""
+      },
+      "code_of_conduct": {},
+      "contributing": {
+        "ORG_LABEL": "simsange"
+      },
+      "issue_bug": {},
+      "issue_feature": {},
+      "issue_config": {
+        "ORG": "simsange"
+      },
+      "pull_request": {}
+    },
+    "tayariai": {
+      "security": {
+        "SUBJECT": "the open-source projects in the [tayariai](https://github.com/tayariai) organization",
+        "SCOPE": "in this organization",
+        "EXTRA": ""
+      },
+      "support": {
+        "DOCS_EXTRA": ""
+      },
+      "code_of_conduct": {},
+      "contributing": {
+        "ORG_LABEL": "tayariai"
+      },
+      "issue_bug": {},
+      "issue_feature": {},
+      "issue_config": {
+        "ORG": "tayariai"
+      },
+      "pull_request": {}
+    },
+    "tusente": {
+      "security": {
+        "SUBJECT": "the open-source projects in the [tusente](https://github.com/tusente) organization",
+        "SCOPE": "in this organization",
+        "EXTRA": ""
+      },
+      "support": {
+        "DOCS_EXTRA": ""
+      },
+      "code_of_conduct": {},
+      "contributing": {
+        "ORG_LABEL": "tusente"
+      },
+      "issue_bug": {},
+      "issue_feature": {},
+      "issue_config": {
+        "ORG": "tusente"
+      },
+      "pull_request": {}
+    },
+    "simbi-prjs-clt": {
+      "security": {
+        "SUBJECT": "the open-source projects in the [simbi-prjs-clt](https://github.com/simbi-prjs-clt) organization",
+        "SCOPE": "in this organization",
+        "EXTRA": ""
+      },
+      "support": {
+        "DOCS_EXTRA": ""
+      },
+      "code_of_conduct": {},
+      "contributing": {
+        "ORG_LABEL": "simbi-prjs-clt"
+      },
+      "issue_bug": {},
+      "issue_feature": {},
+      "issue_config": {
+        "ORG": "simbi-prjs-clt"
+      },
+      "pull_request": {}
+    },
+    "simbi-prjs-int": {
+      "security": {
+        "SUBJECT": "the open-source projects in the [simbi-prjs-int](https://github.com/simbi-prjs-int) organization",
+        "SCOPE": "in this organization",
+        "EXTRA": ""
+      },
+      "support": {
+        "DOCS_EXTRA": ""
+      },
+      "code_of_conduct": {},
+      "contributing": {
+        "ORG_LABEL": "simbi-prjs-int"
+      },
+      "issue_bug": {},
+      "issue_feature": {},
+      "issue_config": {
+        "ORG": "simbi-prjs-int"
+      },
+      "pull_request": {}
     }
   }
 }
