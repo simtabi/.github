@@ -1,0 +1,121 @@
+name: Dependabot merge gate
+
+# Merges a Dependabot pull request only when policy allows its update type and every check on its
+# exact head SHA is green, at least as many as on the repository's last merged PR. Rules:
+# dependabot/merge.py decide() and dependabot/README.md.
+#
+# Dry run unless `apply` is ticked on a manual run, or, for scheduled runs, the repository
+# variable DEPENDABOT_MERGE_APPLY is 'true'. Going live is that variable, not a code change.
+#
+# Runs as refresh-bot, job `dependabot-merge` in bot/policy.json. REFRESH_APP_CLIENT_ID (variable) and
+# REFRESH_APP_PRIVATE_KEY (secret) are organisation-level on every owned org; without both, the run
+# posts a notice and skips instead of failing once per org.
+#
+# merge.py reads commits/{sha}/check-runs and /status, so the job needs checks:read and statuses:read.
+# refresh-bot was granted both on 2026-11-03 and all 10 orgs approved them, so the ceiling moved with the
+# app rather than ahead of it; widening the ceiling first makes create-github-app-token answer 422.
+#
+# refresh-bot has no workflows:write, deliberately: its key is organisation-level, and that permission
+# within reach of every workflow in the estate would let a release job rewrite the CI that gates it. So a
+# pull request touching .github/workflows/ is never merged by this token; leave those to
+# `@dependabot merge`, which Dependabot performs with its own credentials.
+
+on:
+  schedule:
+    # Weekly, Tuesday 14:17 UTC: a day after Dependabot's Monday 06:00 America/New_York run and the
+    # reconciler's Monday 14:00 UTC run, so the week's pull requests have finished CI. The org
+    # caps crons at weekly; anything more urgent is a manual run.
+    - cron: "17 14 * * 2"
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Merge eligible pull requests (otherwise a dry run)
+        type: boolean
+        default: false
+
+permissions: {}
+
+# Never two runs at once: a second run could decide on a PR the first is merging.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  accounts:
+    name: accounts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # The bot's key is an organisation-level secret, readable by every repository in the org.
+    permissions:
+      contents: read
+    outputs:
+      orgs: ${{ steps.list.outputs.orgs }}
+      ready: ${{ steps.credentials.outputs.ready }}
+    steps:
+      # Only whether each is set reaches this step, never the key itself.
+      - name: Check the bot credentials are configured
+        id: credentials
+        env:
+          HAS_CLIENT_ID: ${{ vars.REFRESH_APP_CLIENT_ID != '' }}
+          HAS_PRIVATE_KEY: ${{ secrets.REFRESH_APP_PRIVATE_KEY != '' }}
+        run: |
+          if [ "$HAS_CLIENT_ID" = "true" ] && [ "$HAS_PRIVATE_KEY" = "true" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          missing=()
+          [ "$HAS_CLIENT_ID" = "true" ] || missing+=("variable REFRESH_APP_CLIENT_ID")
+          [ "$HAS_PRIVATE_KEY" = "true" ] || missing+=("secret REFRESH_APP_PRIVATE_KEY")
+          msg="Merge gate skipped: ${missing[*]} not set. Both are organisation-level on every owned org. See bot/README.md."
+          echo "::notice title=Dependabot merge gate::$msg"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+          echo "ready=false" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Org list from policy.json
+        id: list
+        run: |
+          orgs=$(python3 -c 'import json; print(json.dumps(json.load(open("dependabot/policy.json"))["accounts"]["orgs"]))')
+          echo "orgs=$orgs" >> "$GITHUB_OUTPUT"
+
+  merge:
+    name: merge (${{ matrix.org }})
+    needs: accounts
+    if: ${{ needs.accounts.outputs.ready == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        org: ${{ fromJSON(needs.accounts.outputs.orgs) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # bot/policy.json `dependabot-merge`: contents + pull-requests write to merge, workflows write
+      # because GitHub refuses an app merge that changes .github/workflows/ (github-actions updates are
+      # the default policy's auto-merged ecosystem), checks + statuses read for the head SHA's results.
+      - name: Mint a token for ${{ matrix.org }}
+        id: token
+        uses: ./.github/actions/bot-token
+        with:
+          job: dependabot-merge
+          owner: ${{ matrix.org }}
+          client-id: ${{ vars.REFRESH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
+
+      - name: Merge gate for ${{ matrix.org }}
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          ORG: ${{ matrix.org }}
+          APPLY: ${{ (github.event_name == 'workflow_dispatch' && inputs.apply) || (github.event_name == 'schedule' && vars.DEPENDABOT_MERGE_APPLY == 'true') }}
+        run: |
+          args=(--owner "$ORG")
+          if [ "$APPLY" = "true" ]; then args+=(--apply); fi
+          python3 dependabot/merge.py "${args[@]}"

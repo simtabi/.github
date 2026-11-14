@@ -1,0 +1,56 @@
+{
+    "version": 1,
+    "about": "Which refresh-bot token each job may mint. A job not named here gets no token. Owners '*' means every org in dependabot/policy.json accounts.orgs; client accounts are refused whatever is written here. The app is refresh-bot (5110899) since 2026-11-03, when simtabi-bot was retired to keep the estate to two apps; this file and the bot-token action are app-agnostic, so only the credentials the workflows pass changed.",
+    "ceiling": {
+        "contents": "write",
+        "pull-requests": "write",
+        "checks": "read",
+        "statuses": "read"
+    },
+    "jobs": {
+        "dependabot-merge": {
+            "why": "Merge a policy-allowed Dependabot pull request once every check on its head is green. checks and statuses are read because merge.py reads repos/{repo}/commits/{sha}/check-runs and /status; without them decide() sees no checks and refuses every pull request, which is fail-closed but useless. No workflows:write, deliberately: this app's key is organisation-level, and a workflows:write credential within reach of every workflow in the estate would let a release job rewrite the CI that gates it. So a pull request touching .github/workflows/ is never merged by this token -- leave those to '@dependabot merge', which Dependabot performs with its own credentials.",
+            "owners": "*",
+            "permissions": {"contents": "write", "pull-requests": "write", "checks": "read", "statuses": "read"}
+        },
+        "dependabot-reconcile": {
+            "why": "Push chore/dependabot-standard and open or refresh its pull request. dependabot.yml is not under .github/workflows/, so no workflows permission.",
+            "owners": "*",
+            "permissions": {"contents": "write", "pull-requests": "write"}
+        },
+        "agent-kit-read": {
+            "why": "Check out the private generator the reconciler runs.",
+            "owners": ["simtabi"],
+            "repositories": ["agent-kit"],
+            "permissions": {"contents": "read"}
+        },
+        "release-pr": {
+            "why": "Push a bot branch and open or refresh its pull request: release-please, sync-upstream, rebuild-bundle, visual-baselines, tzdata-bump, refresh, refresh-pins. GITHUB_TOKEN cannot do this -- a pull request it opens starts no CI, so required checks never report. No workflows permission: these change source and manifests, never .github/workflows/.",
+            "owners": "*",
+            "permissions": {"contents": "write", "pull-requests": "write"}
+        },
+        "estate-read": {
+            "why": "Read an organisation's repositories to audit them: ichava's estate-check, laranail's audit-private-default-branches. Read-only, every repository of the owner, because the point is to find the ones nobody listed.",
+            "owners": "*",
+            "permissions": {"contents": "read", "pull-requests": "read"}
+        },
+        "private-dep-read": {
+            "why": "Clone a private dependency so a build can resolve it: laranail/sis-wrapper needs simtabi/sis-sdk, docsmith-scaffolder needs simtabi/docsmith. Named rather than open-ended, so a new private dependency is a policy change and not a silent widening.",
+            "owners": ["simtabi"],
+            "repositories": ["sis-sdk", "docsmith"],
+            "permissions": {"contents": "read"}
+        },
+        "consumer-read": {
+            "why": "Let react-icon-browser and react-landingpage check their consumers' VENDORED.json before releasing (check:consumers). Read-only on the two consumers, never on the whole org.",
+            "owners": ["ichava"],
+            "repositories": ["icon-browser", "ichava.com"],
+            "permissions": {"contents": "read"}
+        },
+        "package-repo-push": {
+            "why": "GoReleaser updating the Homebrew tap and the Scoop bucket from a release run (simtabi/osaat). Not minted when both deploy keys are set.",
+            "owners": ["simtabi"],
+            "repositories": ["homebrew-tap", "scoop-bucket"],
+            "permissions": {"contents": "write", "pull-requests": "write"}
+        }
+    }
+}
