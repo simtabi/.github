@@ -101,9 +101,12 @@ jobs:
     env:
       TAG: ${{ inputs.tag }}
       # Our own modules come from git, never through the public proxy, so a release build never
-      # feeds proxy.golang.org or sum.golang.org a tag.
-      GOPRIVATE: github.com/${{ github.repository_owner }}/*
-      GONOSUMDB: github.com/${{ github.repository_owner }}/*
+      # feeds proxy.golang.org or sum.golang.org a tag. Every Simtabi-owned org, not only the
+      # caller's: sangehq/authama imports github.com/simtabi/go-notifykit/src. Client accounts
+      # (adelsaiq, dannielagumo) stay off it. Public modules need no credentials over git; the
+      # checkout's github.token reaches only the caller's own repository.
+      GOPRIVATE: github.com/simtabi/*,github.com/laranail/*,github.com/ichava/*,github.com/sangehq/*,github.com/simsange/*,github.com/mukoracms/*,github.com/brandgulp/*,github.com/tayariai/*,github.com/tusente/*,github.com/simbi-prjs-clt/*,github.com/simbi-prjs-int/*
+      GONOSUMDB: github.com/simtabi/*,github.com/laranail/*,github.com/ichava/*,github.com/sangehq/*,github.com/simsange/*,github.com/mukoracms/*,github.com/brandgulp/*,github.com/tayariai/*,github.com/tusente/*,github.com/simbi-prjs-clt/*,github.com/simbi-prjs-int/*
     steps:
       - name: Check the tag
         env:

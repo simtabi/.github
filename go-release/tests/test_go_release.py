@@ -24,6 +24,17 @@ CHANNELS = {
 }
 
 
+# Every Simtabi-owned org, so a release fetches our own modules from git and never feeds
+# proxy.golang.org or sum.golang.org a tag (~/.claude/rules/releases.md). Re-derived 2026-11-14 with
+# `gh api user/orgs --jq '.[].login'`: 12 orgs, less the client-owned adelsaiq. Client accounts
+# (adelsaiq, dannielagumo) and deleted orgs (joemanch, tayaricms, the-omaris) stay off it.
+OWNED_ORGS = (
+    "simtabi", "laranail", "ichava", "sangehq", "simsange", "mukoracms", "brandgulp",
+    "tayariai", "tusente", "simbi-prjs-clt", "simbi-prjs-int",
+)
+NEVER = ("adelsaiq", "dannielagumo", "joemanch", "tayaricms", "the-omaris")
+
+
 def triggers(text):
     """The top-level keys under `on:`, in order."""
     block = re.search(r"^on:\n((?:[ \t]+.*\n|\n)+)", text, re.M)
@@ -88,6 +99,18 @@ class SharedWorkflow(unittest.TestCase):
         for st in attest:
             self.assertRegex(st, r"\n        if: .*github\.event\.repository\.private == false", st)
 
+
+    def test_every_owned_org_is_fetched_from_git(self):
+        env = re.search(r"\n    env:\n((?:      .*\n)+)", self.job())
+        self.assertIsNotNone(env, "the release job sets no env")
+        for var in ("GOPRIVATE", "GONOSUMDB"):
+            m = re.search(r"^      " + var + r": (\S+)$", env.group(1), re.M)
+            self.assertIsNotNone(m, f"the release job does not set {var}")
+            got = m.group(1).split(",")
+            self.assertEqual(len(got), len(OWNED_ORGS), f"{var}: {got}")
+            self.assertEqual(set(got), {f"github.com/{o}/*" for o in OWNED_ORGS}, var)
+            for other in NEVER:
+                self.assertNotIn(f"github.com/{other}/*", got, f"{var} names {other}")
 
     def test_node_defaults_to_the_latest_release(self):
         m = re.search(r"\n      node-version:\n(?:        .*\n)*?        default: (\S+)", self.text)
