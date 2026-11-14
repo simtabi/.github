@@ -11,7 +11,8 @@
    "tayariai",
    "tusente",
    "simbi-prjs-clt",
-   "simbi-prjs-int"
+   "simbi-prjs-int",
+   "sangehq"
   ],
   "users": [
    "imanimanyara"
@@ -21,6 +22,18 @@
   {
    "repo": "laranail/wire-elements-pro",
    "reason": "A mirror of the commercial Wire Elements Pro package: its dependencies follow upstream releases, not Dependabot."
+  },
+  {
+   "repo": "brandgulp/brandgulp.com",
+   "reason": "On the WIP ignore list (opensource/WIP-IGNORE.md, 2026-11-03): red default branch until work officially starts. Remove this entry when it leaves that list."
+  },
+  {
+   "repo": "simbi-prjs-int/creamer.simtabi.com",
+   "reason": "On the WIP ignore list (opensource/WIP-IGNORE.md, 2026-11-03): red default branch until work officially starts. Remove this entry when it leaves that list."
+  },
+  {
+   "repo": "tusente/web-app",
+   "reason": "On the WIP ignore list (opensource/WIP-IGNORE.md, 2026-11-03): red default branch until work officially starts. Remove this entry when it leaves that list."
   }
  ],
  "schedule": {

@@ -5,6 +5,13 @@ and callers pin `go-release.yml@<commit>  # vX.Y.Z`.
 
 ## [Unreleased]
 
+### Changed
+
+- `dependabot/policy.json` reconciles and merge-gates `sangehq`, the eleventh owned org, which was
+  missing from `accounts.orgs`. It excludes the three repositories on the WIP ignore list
+  (`brandgulp/brandgulp.com`, `simbi-prjs-int/creamer.simtabi.com`, `tusente/web-app`) so turning
+  the reconciler on opens no pull request against them.
+
 ## [0.1.0] - 2026-11-14
 
 First tagged release of the shared workflows. It replaces `v1.0.0` and `v1.0.1`, withdrawn on

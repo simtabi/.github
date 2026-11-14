@@ -23,7 +23,7 @@ Every run prints a table and appends it to the job summary: for the reconciler `
 | Key | Value | Meaning |
 |---|---|---|
 | `version` | `1` | Named in the header of every generated file. Bump it when the rendered shape changes. |
-| `accounts.orgs` | 10 owned orgs | Reconciled and merge-gated by the workflows, with a `refresh-bot` token per org. |
+| `accounts.orgs` | 11 owned orgs | Reconciled and merge-gated by the workflows, with a `refresh-bot` token per org. |
 | `accounts.users` | `imanimanyara` | Not covered by the GitHub App; run locally (below). |
 | `exclude` | `[{"repo": "owner/name", "reason": "..."}]` | Repositories neither script touches. A reason is required. |
 | `schedule` | weekly, Monday 06:00, America/New_York | The documented convention. |
