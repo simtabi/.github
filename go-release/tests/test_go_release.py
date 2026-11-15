@@ -162,3 +162,49 @@ class VerifyCommands(unittest.TestCase):
                 found += 1
                 self.assertIn(SIGNER, " ".join(line.split()), f"{path.name}: {line.strip()}")
         self.assertGreaterEqual(found, 3, "the workflow, template and README should each show the command")
+
+
+class ReleaseNotes(unittest.TestCase):
+    """Runs the workflow's own "Extract the changelog section" script under bash.
+
+    GitHub cuts a release body at 125,000 characters; authama v0.1.0's section was 157,941 bytes, so
+    its notes were cut and the run failed before attesting (2026-11-15).
+    """
+
+    LIMIT = 125_000
+
+    def script(self):
+        text = WORKFLOW.read_text()
+        m = re.search(r"- name: Extract the changelog section\n(?:.*\n)*?        run: \|\n((?:          .*\n|\n)+)", text)
+        self.assertIsNotNone(m, "the notes step is gone")
+        return "\n".join(line[10:] for line in m.group(1).splitlines())
+
+    def run_notes(self, body):
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            changelog = Path(tmp) / "CHANGELOG.md"
+            changelog.write_text("# Changelog\n\n## [Unreleased]\n\n## [0.1.0] - 2026-11-14\n\n" + body + "\n## [0.0.9] - 2026-01-01\n\nold\n")
+            env = {"PATH": "/usr/bin:/bin", "VERSION": "0.1.0", "TAG": "v0.1.0", "CHANGELOG": str(changelog),
+                   "RUNNER_TEMP": tmp, "GITHUB_REPOSITORY": "example/repo"}
+            subprocess.run(["bash", "-c", self.script()], env=env, check=True, cwd=tmp)
+            return (Path(tmp) / "release_notes.md").read_text()
+
+    def test_a_short_section_is_published_whole(self):
+        notes = self.run_notes("- one change\n- another\n")
+        self.assertIn("- one change\n- another\n", notes)
+        self.assertIn("**Full changelog:**", notes)
+        self.assertNotIn("old", notes)
+
+    def test_a_section_over_the_limit_fits_and_links_the_rest(self):
+        lines = [f"- change {i:06d}: " + "x" * 80 for i in range(1800)]  # ~162 KB, like authama's
+        notes = self.run_notes("\n".join(lines) + "\n")
+        self.assertLessEqual(len(notes), self.LIMIT, "the notes would be cut by GitHub")
+        self.assertIn("blob/v0.1.0/", notes, "the rest is not linked at the tag")
+        kept = [l for l in notes.splitlines() if l.startswith("- change ")]
+        self.assertGreater(len(kept), 1000, "too little of the section was kept")
+        self.assertEqual(kept, lines[: len(kept)], "a line was cut or reordered")
+
+    def test_the_check_compares_the_notes_sent(self):
+        text = WORKFLOW.read_text()
+        self.assertIn('want=$(tr -d \'[:space:]\' < "$RUNNER_TEMP/release_notes.md" | wc -c)', text)

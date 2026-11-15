@@ -5,6 +5,16 @@ and callers pin `go-release.yml@<commit>  # vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-15
+
+### Fixed
+
+- `go-release.yml` publishes a CHANGELOG section longer than a GitHub release allows (125,000
+  characters) up to the last whole line that fits, then links the full section in the CHANGELOG at
+  the tag. It used to send it whole: GitHub cut the body, the notes check failed and the run stopped
+  before attesting provenance (`sangehq/authama` v0.1.0, 157,941 bytes, 2026-11-15). The check now
+  compares the notes sent. `go-release/tests` runs the step's own script against a long section.
+
 ### Changed
 
 - `templates/health/orgs.json` renders the health set for six more owned orgs: `sangehq`,
@@ -30,5 +40,6 @@ First tagged release of the shared workflows. It replaces `v1.0.0` and `v1.0.1`,
   `sangehq/authama` review). `go-release/tests/` pins the list.
 - `templates/go/release.yml`: the caller to copy.
 
-[Unreleased]: https://github.com/simtabi/.github/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/simtabi/.github/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/simtabi/.github/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/simtabi/.github/releases/tag/v0.1.0

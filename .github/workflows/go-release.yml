@@ -189,6 +189,17 @@ jobs:
             echo ''
             echo "**Full changelog:** https://github.com/${GITHUB_REPOSITORY}/blob/main/${CHANGELOG}"
           } > "$RUNNER_TEMP/release_notes.md"
+          # GitHub cuts a release body at 125,000 characters. A longer section is published up to the
+          # last whole line that fits, then a link to the whole section in the CHANGELOG at the tag,
+          # so the notes are never silently cut and the check below compares what was sent.
+          limit=120000
+          if [ "$(wc -c < "$RUNNER_TEMP/release_notes.md")" -gt "$limit" ]; then
+            {
+              head -c "$((limit - 1000))" "$RUNNER_TEMP/section.md" | sed '$d'
+              echo ''
+              echo "_These notes are longer than a GitHub release allows. The full ${TAG} notes are in [${CHANGELOG} at ${TAG}](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/${CHANGELOG})._"
+            } > "$RUNNER_TEMP/release_notes.md"
+          fi
 
       # A module in a subdirectory resolves through a tag named after it (src/vX.Y.Z), which OSS
       # GoReleaser rejects as non-semver, so it is mirrored here onto the same commit. It matches no
@@ -219,18 +230,18 @@ jobs:
           # Empty unless the caller passes it; only a config that signs through SignPath reads it.
           SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
 
-      # Fail closed on an empty release body: read the published release back and require at least
-      # the changelog section passed in.
+      # Fail closed on an empty or cut release body: read the published release back and require at
+      # least the notes passed in (the whole section, or the part that fits plus its link).
       - name: Verify the published release notes
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          want=$(tr -d '[:space:]' < "$RUNNER_TEMP/section.md" | wc -c)
+          want=$(tr -d '[:space:]' < "$RUNNER_TEMP/release_notes.md" | wc -c)
           got=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq '.body' | tr -d '[:space:]' | wc -c)
           echo "section=${want} body=${got} (non-space characters)"
           if [ "$got" -lt "$want" ]; then
-            echo "::error::The ${TAG} release body is shorter than its CHANGELOG section (${got} < ${want})."
+            echo "::error::The ${TAG} release body is shorter than the notes sent (${got} < ${want})."
             exit 1
           fi
 
