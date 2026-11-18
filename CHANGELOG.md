@@ -5,6 +5,8 @@ and callers pin `go-release.yml@<commit>  # vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-18
+
 ### Added
 
 - `release-window.yml` takes `mode: reopen`: run from the caller's own Tuesday 12:47 schedule, it re-runs
@@ -60,7 +62,8 @@ First tagged release of the shared workflows. It replaces `v1.0.0` and `v1.0.1`,
   `sangehq/authama` review). `go-release/tests/` pins the list.
 - `templates/go/release.yml`: the caller to copy.
 
-[Unreleased]: https://github.com/simtabi/.github/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/simtabi/.github/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/simtabi/.github/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/simtabi/.github/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/simtabi/.github/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/simtabi/.github/releases/tag/v0.1.0
