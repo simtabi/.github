@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "about": "Repositories on the weekly release train (DEC-044, company-os-internal docs/delivery/processes/release-train.md), who may approve a release, and the Tuesdays the train does not run. A repository joins by being listed here and calling release-window.yml; the pilot is sangehq/authama and laranail/package-tools (18 November 2026).",
+    "owners": ["imanimanyara"],
+    "repos": [
+        "sangehq/authama",
+        "laranail/package-tools"
+    ],
+    "skip": [
+        "2026-12-29"
+    ]
+}

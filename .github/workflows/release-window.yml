@@ -1,0 +1,56 @@
+# The release-train freeze (DEC-044): from Friday 18:00 to Tuesday 12:30 America/New_York, only a pull
+# request labelled `release-fix`, or the train's own `release/train-*` pull request, may merge. A
+# repository on the train calls this on every pull request; on a public repository make the check
+# required, on a private one (no rulesets on GitHub Free) it is held by practice. release-train.py
+# also refuses to cut an rc over anything that merged without the label.
+#
+# The caller:
+#
+#   on:
+#     pull_request:
+#       types: [opened, synchronize, reopened, labeled, unlabeled]
+#   permissions: {}
+#   jobs:
+#     window:
+#       uses: simtabi/.github/.github/workflows/release-window.yml@<commit>
+name: Release window
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  window:
+    name: release window
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Check the release freeze
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          # %u: 1 Monday .. 7 Sunday; %H%M: 24-hour time, both in New York time.
+          read -r day hm < <(TZ=America/New_York date '+%u %H%M')
+          hm=$((10#$hm))
+          frozen=false
+          case "$day" in
+            5) [ "$hm" -ge 1800 ] && frozen=true ;;
+            6|7|1) frozen=true ;;
+            2) [ "$hm" -lt 1230 ] && frozen=true ;;
+          esac
+          if [ "$frozen" != "true" ]; then
+            echo "Not in the release freeze."
+            exit 0
+          fi
+          case "$HEAD_REF" in
+            release/train-*) echo "The release train's own pull request."; exit 0 ;;
+          esac
+          if printf '%s' "$LABELS" | grep -q '"release-fix"'; then
+            echo "Labelled release-fix: allowed during the freeze; merging it cuts the next release candidate."
+            exit 0
+          fi
+          echo "::error title=Release freeze::main is frozen from Friday 18:00 to Tuesday 12:30 ET for the release train. Merge after the Tuesday release, or label this pull request release-fix if it must ship in this train."
+          exit 1

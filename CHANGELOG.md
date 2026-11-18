@@ -5,6 +5,17 @@ and callers pin `go-release.yml@<commit>  # vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added
+
+- The weekly release train (DEC-044): `release-train.yml` cuts a "Release X.Y.Z" pull request on
+  Friday 18:07, tags `vX.Y.Z-rc.N` hourly Saturday to Monday, and tags `vX.Y.Z` on the reviewed rc's
+  commit on Tuesday 10:17 (retry 12:17), all America/New_York, for the repositories in
+  `release-train/train.json` (pilot: `sangehq/authama`, `laranail/package-tools`). It writes nothing
+  until `RELEASE_TRAIN_APPLY` is `true`. `release-window.yml` is the reusable freeze check: only
+  `release-fix` pull requests merge from Friday 18:00 to Tuesday 12:30. `bot/policy.json` gains the
+  `release-train` job (contents and pull requests write). `release-train/tests` covers the version
+  bump, the changelog cut, each step's decisions and the freeze check's shell against a fixed clock.
+
 ## [0.1.1] - 2026-11-15
 
 ### Fixed

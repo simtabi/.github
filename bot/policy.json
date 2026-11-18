@@ -46,6 +46,11 @@
             "repositories": ["icon-browser", "ichava.com"],
             "permissions": {"contents": "read"}
         },
+        "release-train": {
+            "why": "The weekly release train (release-train/train.py, DEC-044): create release/train-X.Y.Z with its CHANGELOG commit and push the rc and final tags (contents write), open the release pull request and read its labels and label events (pull-requests write). A tag pushed with GITHUB_TOKEN would start no release workflow. No workflows permission: the train changes CHANGELOG.md and tags existing commits, never .github/workflows/.",
+            "owners": "*",
+            "permissions": {"contents": "write", "pull-requests": "write"}
+        },
         "package-repo-push": {
             "why": "GoReleaser updating the Homebrew tap and the Scoop bucket from a release run (simtabi/osaat). Not minted when both deploy keys are set.",
             "owners": ["simtabi"],
