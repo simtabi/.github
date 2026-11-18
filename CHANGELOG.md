@@ -5,6 +5,13 @@ and callers pin `go-release.yml@<commit>  # vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added
+
+- `release-window.yml` takes `mode: reopen`: run from the caller's own Tuesday 12:47 schedule, it re-runs
+  the failed release window check of every open pull request, so a check failed during the freeze no
+  longer blocks a required merge after the freeze lifts. Only that job holds `actions: write`, with the
+  caller's `GITHUB_TOKEN`; the per-pull-request check still holds no permissions.
+
 ## [0.1.2] - 2026-11-18
 
 ### Added
