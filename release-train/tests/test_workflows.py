@@ -15,7 +15,7 @@ TRAIN = ROOT / ".github" / "workflows" / "release-train.yml"
 
 def window_script():
     text = WINDOW.read_text(encoding="utf-8")
-    m = re.search(r"        run: \|\n((?:          .*\n|\n)+)", text)
+    m = re.search(r"- name: Check the release freeze\n(?:        .*\n)*?        run: \|\n((?:          .*\n|\n)+)", text)
     assert m, "release-window.yml has no run block"
     return "\n".join(line[10:] for line in m.group(1).splitlines())
 
@@ -47,6 +47,23 @@ class Window(unittest.TestCase):
     def test_leading_zero_times_are_decimal(self):
         # 0800 and 0900 are not octal: 10#$hm.
         self.assertEqual(run_window(2, "0900"), 1)
+
+
+class Reopen(unittest.TestCase):
+    def test_modes_are_separate_jobs(self):
+        text = WINDOW.read_text(encoding="utf-8")
+        self.assertIn("if: inputs.mode == 'check'", text)
+        self.assertIn("if: inputs.mode == 'reopen'", text)
+        # Only the reopen job may write; the per-PR check holds no permissions at all.
+        check = text.split("\n  reopen:\n")[0]
+        self.assertNotIn("actions: write", check.split("\njobs:\n")[1])
+        self.assertIn("gh run rerun", text.split("\n  reopen:\n")[1])
+
+    def test_reopen_runs_after_the_freeze_lifts(self):
+        text = WINDOW.read_text(encoding="utf-8")
+        cron = re.search(r'cron: "(\d+) (\d+) \* \* 2"', text)
+        self.assertIsNotNone(cron, "the documented caller schedules reopen on a Tuesday")
+        self.assertGreater(int(cron.group(2)) * 100 + int(cron.group(1)), 1230)
 
 
 class Schedules(unittest.TestCase):

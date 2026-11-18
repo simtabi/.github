@@ -4,25 +4,49 @@
 # required, on a private one (no rulesets on GitHub Free) it is held by practice. release-train.py
 # also refuses to cut an rc over anything that merged without the label.
 #
+# A check that failed during the freeze would stay red after it lifts, blocking a required check
+# until someone pushed, relabelled or re-ran it. So the caller also runs this on Tuesday after the
+# freeze with `mode: reopen`, which re-runs the failed check of every open pull request, using the
+# caller's own GITHUB_TOKEN with `actions: write` (that job only).
+#
 # The caller:
 #
 #   on:
 #     pull_request:
 #       types: [opened, synchronize, reopened, labeled, unlabeled]
+#     schedule:
+#       - cron: "47 12 * * 2"
+#         timezone: America/New_York
 #   permissions: {}
 #   jobs:
 #     window:
-#       uses: simtabi/.github/.github/workflows/release-window.yml@<commit>
+#       if: github.event_name == 'pull_request'
+#       uses: simtabi/.github/.github/workflows/release-window.yml@<commit>  # vX.Y.Z
+#     reopen:
+#       if: github.event_name == 'schedule'
+#       permissions:
+#         actions: write
+#         pull-requests: read
+#       uses: simtabi/.github/.github/workflows/release-window.yml@<commit>  # vX.Y.Z
+#       with:
+#         mode: reopen
 name: Release window
 
 on:
   workflow_call:
+    inputs:
+      mode:
+        description: "check (on a pull request) or reopen (after the freeze: re-run the failed checks of open pull requests)"
+        required: false
+        type: string
+        default: check
 
 permissions: {}
 
 jobs:
   window:
     name: release window
+    if: inputs.mode == 'check'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}
@@ -54,3 +78,37 @@ jobs:
           fi
           echo "::error title=Release freeze::main is frozen from Friday 18:00 to Tuesday 12:30 ET for the release train. Merge after the Tuesday release, or label this pull request release-fix if it must ship in this train."
           exit 1
+
+  reopen:
+    name: re-run failed release window checks
+    if: inputs.mode == 'reopen'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      pull-requests: read
+    steps:
+      - name: Re-run the check on every open pull request it failed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          # owner/repo/.github/workflows/<file>@<ref>: the caller's workflow, whose runs hold the check.
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          file="${WORKFLOW_REF%@*}"; file="${file##*/}"
+          rerun=0 seen=0
+          while read -r number sha; do
+            [ -n "$number" ] || continue
+            seen=$((seen + 1))
+            # The newest run of the caller's workflow for the pull request's current head.
+            read -r run conclusion < <(gh run list --repo "$REPO" --workflow "$file" --commit "$sha" \
+              --event pull_request --limit 1 --json databaseId,conclusion \
+              --jq '.[0] | "\(.databaseId // "") \(.conclusion // "")"')
+            if [ "$conclusion" = "failure" ]; then
+              gh run rerun "$run" --repo "$REPO" --failed
+              echo "#$number: re-ran run $run"
+              rerun=$((rerun + 1))
+            fi
+          done < <(gh pr list --repo "$REPO" --state open --limit 200 --json number,headRefOid \
+                     --jq '.[] | "\(.number) \(.headRefOid)"')
+          echo "Re-ran $rerun failed release window check(s) across $seen open pull request(s)." | tee -a "$GITHUB_STEP_SUMMARY"
