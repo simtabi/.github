@@ -48,9 +48,16 @@ A private repository that declares `MIT` only because a framework skeleton did (
 
 | Account | `{{LICENSING_CONTACT}}` |
 |---|---|
-| every owned account (`ichava`, `laranail`, `simtabi`, `mukoracms`, `imanimanyara`, `brandgulp`) | `imani@simtabi.com` |
+| every owned account (`ichava`, `laranail`, `simtabi`, `mukoracms`, `imanimanyara`, `brandgulp`) | `opensource@simtabi.com` |
 
-Licensing is a maintainer question, so it goes to the maintainer address. `opensource@simtabi.com` is community mail, and the six laranail proprietary licences that name it predate this master; they are correct to leave until they are next edited. Client accounts (`adelsaiq`, `dannielagumo`, `joemanch`) are never given these masters: their licences are the client's.
+Licensing goes to the community address, like every other published contact. It was
+`imani@simtabi.com` until 2026-11-18, when the owner ruled that no personal address appears on a
+published surface: a role inbox outlives the person holding it, and a licensing question sent to an
+individual stalls when that individual is away. The six laranail proprietary licences that already
+named `opensource@simtabi.com` were ahead of this master rather than behind it.
+
+Client accounts (`adelsaiq`, `dannielagumo`, `joemanch`) are never given these masters: their
+licences are the client's.
 
 ### `{{#ICON_ARTWORK}}`
 
