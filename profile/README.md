@@ -36,7 +36,7 @@ Every project here started as an itch we had to scratch:
   tooling we use to build, scaffold, and ship Laravel packages, now an
   organization of its own.
 
-## Talk to us
+## Get in touch
 
 - Found a bug or want a feature? Open an issue on that repository. Answers in
   the open help the next person too.

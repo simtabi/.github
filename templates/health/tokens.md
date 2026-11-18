@@ -66,9 +66,14 @@ They use their own inboxes.
 | `ISSUE_TEMPLATE/config.yml.tmpl` | `{{ORG}}`; block `COMMUNITY_EMAIL` | links the account's security policy page and its `SUPPORT.md`. Never Discussions: it is enabled on some repositories only, and an org default cannot tell which |
 | `PULL_REQUEST_TEMPLATE.md.tmpl` | none | |
 
-`COMMUNITY_EMAIL` is the account's community and contact inbox, defaulting to `opensource@simtabi.com`.
-ichava sets `ichava@simtabi.com` (Sim, 2026-11-03). Disclosure is `security@simtabi.com` for every
+`COMMUNITY_EMAIL` is the account's community and contact inbox, and it is
+`opensource@simtabi.com` for every owned account. Disclosure is `security@simtabi.com` for every
 account and is not a token.
+
+ichava set `ichava@simtabi.com` (Sim, 2026-11-03) and that was reversed on 2026-11-18 (owner: fold
+ichava into `opensource@`). The per-org pattern was sound but it was live on exactly one account
+out of twelve, so it read as drift rather than as routing; extending it properly would mean eleven
+new inboxes, and a published address that does not receive mail is worse than an inconsistent one.
 
 `{{#NAME}}default{{/NAME}}` is a block with a default: the master's text unless the account sets
 `NAME`. In `orgs.json`, `"keep"` means the account's own file is the source and is never rendered;
