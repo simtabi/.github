@@ -60,6 +60,7 @@ On GitHub Free a **private** repository cannot read organisation secrets and nee
 | `private-dep-read` | `simtabi` | contents (read) | `sis-sdk`, `docsmith` |
 | `consumer-read` | `ichava` | contents (read) | `icon-browser`, `ichava.com` |
 | `package-repo-push` | `simtabi` | contents, pull requests (write) | `homebrew-tap`, `scoop-bucket` |
+| `release-train` | `*` | contents, pull requests (write) | all |
 
 > **`dependabot-merge` can read checks since 2026-11-03.** `merge.py` reads `commits/{sha}/check-runs` and
 > `/status`; `refresh-bot` was granted `checks: read` and `statuses: read` that day and all 10 orgs approved

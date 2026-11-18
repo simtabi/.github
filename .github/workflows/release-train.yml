@@ -1,0 +1,125 @@
+# The weekly release train (DEC-044; company-os-internal docs/delivery/processes/release-train.md):
+# cut on Friday 18:07, release candidates hourly over the review window, release on Tuesday 10:17 with
+# a retry at 12:17, all America/New_York. release-train/train.py does the work for the repositories
+# listed in release-train/train.json; each tag it pushes starts that repository's own release.yml.
+#
+# It writes nothing until the repository variable RELEASE_TRAIN_APPLY is `true` (or `apply` is ticked
+# on a manual run), the same switch the Dependabot control plane uses. The hourly rc schedule is the
+# one exception to "crons weekly at most": it runs only Saturday to Monday, in this public repository,
+# where Actions minutes are free.
+name: Release train
+
+on:
+  schedule:
+    - cron: "7 18 * * 5"
+      timezone: America/New_York
+    - cron: "37 * * * 6,0,1"
+      timezone: America/New_York
+    - cron: "17 10,12 * * 2"
+      timezone: America/New_York
+  workflow_dispatch:
+    inputs:
+      step:
+        description: Which step to run
+        type: choice
+        options: [cut, tag, promote]
+        required: true
+      apply:
+        description: Open pull requests and push tags (otherwise a dry run)
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      step: ${{ steps.step.outputs.step }}
+      owners: ${{ steps.owners.outputs.owners }}
+      ready: ${{ steps.credentials.outputs.ready }}
+    steps:
+      - name: Check the bot credentials are configured
+        id: credentials
+        env:
+          HAS_CLIENT_ID: ${{ vars.REFRESH_APP_CLIENT_ID != '' }}
+          HAS_PRIVATE_KEY: ${{ secrets.REFRESH_APP_PRIVATE_KEY != '' }}
+        run: |
+          if [ "$HAS_CLIENT_ID" = "true" ] && [ "$HAS_PRIVATE_KEY" = "true" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Release train::skipped: REFRESH_APP_CLIENT_ID or REFRESH_APP_PRIVATE_KEY is not set. See bot/README.md."
+          fi
+
+      - name: Which step this run is
+        id: step
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_STEP: ${{ inputs.step }}
+        run: |
+          case "$EVENT:$SCHEDULE" in
+            workflow_dispatch:*) step="$INPUT_STEP" ;;
+            "schedule:7 18 * * 5") step="cut" ;;
+            "schedule:37 * * * 6,0,1") step="tag" ;;
+            "schedule:17 10,12 * * 2") step="promote" ;;
+            *) echo "::error::no step for event $EVENT schedule '$SCHEDULE'"; exit 1 ;;
+          esac
+          echo "step=$step" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Owners from train.json
+        id: owners
+        run: |
+          owners=$(python3 -c 'import json; print(json.dumps(sorted({r.split("/")[0] for r in json.load(open("release-train/train.json"))["repos"]})))')
+          echo "owners=$owners" >> "$GITHUB_OUTPUT"
+
+  train:
+    name: ${{ needs.plan.outputs.step }} (${{ matrix.owner }})
+    needs: plan
+    if: ${{ needs.plan.outputs.ready == 'true' && needs.plan.outputs.owners != '[]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        owner: ${{ fromJSON(needs.plan.outputs.owners) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # bot/policy.json `release-train`: contents write creates the release branch, its CHANGELOG
+      # commit and the tags; pull-requests write opens the release pull request and reads labels.
+      - name: Mint a token for ${{ matrix.owner }}
+        id: token
+        uses: ./.github/actions/bot-token
+        with:
+          job: release-train
+          owner: ${{ matrix.owner }}
+          client-id: ${{ vars.REFRESH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
+
+      - name: Run ${{ needs.plan.outputs.step }} for ${{ matrix.owner }}
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          OWNER: ${{ matrix.owner }}
+          STEP: ${{ needs.plan.outputs.step }}
+          APPLY: ${{ (github.event_name == 'workflow_dispatch' && inputs.apply) || (github.event_name == 'schedule' && vars.RELEASE_TRAIN_APPLY == 'true') }}
+        run: |
+          args=("$STEP" --owner "$OWNER")
+          if [ "$APPLY" = "true" ]; then args+=(--apply); fi
+          python3 release-train/train.py "${args[@]}"
