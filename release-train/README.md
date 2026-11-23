@@ -34,6 +34,10 @@ The version comes from the `[Unreleased]` headings. From 1.0: `Removed`, `Breaki
    jobs:
      window:
        if: github.event_name == 'pull_request'
+       # GitHub checks the reopen job's permissions against this job too, even though it is skipped.
+       permissions:
+         actions: write
+         pull-requests: read
        uses: simtabi/.github/.github/workflows/release-window.yml@<commit>  # vX.Y.Z
      reopen:
        if: github.event_name == 'schedule'
@@ -45,7 +49,7 @@ The version comes from the `[Unreleased]` headings. From 1.0: `Removed`, `Breaki
          mode: reopen
    ```
 
-   On a public repository make `release window` a required check. On Tuesday at 12:47, after the freeze lifts, the `reopen` job re-runs the check on every open pull request it failed, so nothing stays blocked by a freeze that has ended. Only that job holds `actions: write`, and only the repository's own `GITHUB_TOKEN`.
+   On a public repository make `release window` a required check. On Tuesday at 12:47, after the freeze lifts, the `reopen` job re-runs the check on every open pull request it failed, so nothing stays blocked by a freeze that has ended. Only the reopen job uses `actions: write`, with the repository's own `GITHUB_TOKEN`. The `window` job grants it too because GitHub checks every job of a called workflow against the caller job before it starts, skipped ones included; without the grant the check never starts (`startup_failure`), and the called check job narrows its own token back to no permissions.
 
 4. Create the labels `release-fix` and `release:approved`.
 
