@@ -7,7 +7,9 @@
 # A check that failed during the freeze would stay red after it lifts, blocking a required check
 # until someone pushed, relabelled or re-ran it. So the caller also runs this on Tuesday after the
 # freeze with `mode: reopen`, which re-runs the failed check of every open pull request, using the
-# caller's own GITHUB_TOKEN with `actions: write` (that job only).
+# caller's own GITHUB_TOKEN with `actions: write`. The caller's window job grants that too, because
+# GitHub checks every job here against the caller job before starting, skipped ones included; the
+# window job below narrows its own token back to `permissions: {}`.
 #
 # The caller:
 #
@@ -21,6 +23,9 @@
 #   jobs:
 #     window:
 #       if: github.event_name == 'pull_request'
+#       permissions:                  # checked against the reopen job too, even though it is skipped
+#         actions: write
+#         pull-requests: read
 #       uses: simtabi/.github/.github/workflows/release-window.yml@<commit>  # vX.Y.Z
 #     reopen:
 #       if: github.event_name == 'schedule'

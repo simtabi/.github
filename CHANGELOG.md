@@ -5,6 +5,13 @@ and callers pin `go-release.yml@<commit>  # vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed
+
+- The documented `release-window.yml` caller (README and the workflow's header) now grants its `window`
+  job `actions: write` and `pull-requests: read`. GitHub checks the called workflow's `reopen` job against
+  the caller job too, so without the grant the release window check never started (`startup_failure`).
+  A test pins both documented callers.
+
 ## [0.1.3] - 2026-11-18
 
 ### Added

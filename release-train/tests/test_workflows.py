@@ -66,6 +66,29 @@ class Reopen(unittest.TestCase):
         self.assertGreater(int(cron.group(2)) * 100 + int(cron.group(1)), 1230)
 
 
+class DocumentedCaller(unittest.TestCase):
+    """GitHub checks every job of a called workflow against the caller job's permissions before it
+    starts, even a job that is skipped. The window caller job must therefore grant what the reopen job
+    asks for, or the check never starts (startup_failure; laranail/package-tools#111, 2026-11-23)."""
+
+    def callers(self):
+        readme = (ROOT / "release-train" / "README.md").read_text(encoding="utf-8")
+        header = "\n".join(l[1:] for l in WINDOW.read_text(encoding="utf-8").splitlines() if l.startswith("#"))
+        found = []
+        for name, text in (("README.md", readme), ("release-window.yml header", header)):
+            blocks = re.findall(r"\n(\s*)window:\n(.*?)\n\1reopen:\n", text, re.S)
+            found += [(name, body) for _, body in blocks]
+        return found
+
+    def test_window_caller_job_grants_the_reopen_permissions(self):
+        callers = self.callers()
+        self.assertEqual(len(callers), 2, "one documented caller in the README and one in the workflow header")
+        for name, body in callers:
+            with self.subTest(name):
+                self.assertIn("actions: write", body)
+                self.assertIn("pull-requests: read", body)
+
+
 class Schedules(unittest.TestCase):
     def test_every_cron_has_a_step_and_a_timezone(self):
         text = TRAIN.read_text(encoding="utf-8")
